@@ -2,9 +2,8 @@
 #include "Actions.hpp"
 #include <algorithm>
 
-std::pair<TBStyle, TBStyle> List::DrawFn(std::size_t i, Vec2i pos, int w, bool hovered, ListSelect::MarkType mark, Char trailing) const
+std::pair<TBStyle, TBStyle> List::DrawFn(std::size_t i, Vec2i pos, int w, bool hovered, Char trailing) const
 {
-	OnChangePosition.Notify<EventWhen::BEFORE>();
 	const File& f = (*m_dir)[i];
 	auto [icon, c, ts] = FileType::CompiledIcons[f.ftId];
 	const TBChar trailChar{trailing, {c.name, Settings::Style::List::background.s.bg, ts}};
@@ -25,17 +24,34 @@ std::pair<TBStyle, TBStyle> List::DrawFn(std::size_t i, Vec2i pos, int w, bool h
 			return {s.fg, Settings::Style::List::background.s.bg, s.s};
 	};
 
-	// Icons
+	// Mark
 	int p(0);
+	int w2 = w;
+	if (f.mark != MarkType::NONE) [[unlikely]]
+	{
+		const auto fn = [&](MarkType m, std::size_t i)
+		{
+			if (f.mark & m)
+				p += Draw::TextLineBackground(Settings::Style::List::mark_prefix[i], style(c.name).bg, pos+Vec2i(p,0), w2-p, trailChar).first;
+
+		};
+		[&]<std::size_t... i>(std::index_sequence<i...>)
+		{
+			(( fn(MarkType::get<i+1>(), i) ), ...);
+		}
+		(std::make_index_sequence<MarkType::size-1>{});
+	}
+
+	// Icons
 	if constexpr (Settings::Layout::List::icons)
 	{
-		p = Draw::TextLine(String(icon), style(c.icon), pos, Settings::Layout::List::icons_width, trailChar).first;
-		Draw::Horizontal({U' ', style(c.icon)}, pos+Vec2i(p,0), Settings::Layout::List::icons_width-p);
-		p = Settings::Layout::List::icons_width;
+		const int p2 = Draw::TextLine(String(icon), style(c.icon), pos+Vec2i(p, 0), Settings::Layout::List::icons_width, trailChar).first;
+		Draw::Horizontal({U' ', style(c.icon)}, pos+Vec2i(p+p2, 0), Settings::Layout::List::icons_width-p2);
+		p += Settings::Layout::List::icons_width;
+
 	}
 
 	// Size
-	int w2 = w;
 	if (m_mainList && f.mode != Mode::DIR && f.lnk.mode != Mode::DIR)
 	{
 		const TBString size = [&]()
@@ -59,7 +75,7 @@ std::pair<TBStyle, TBStyle> List::DrawFn(std::size_t i, Vec2i pos, int w, bool h
 	if constexpr (Settings::Layout::List::display_link)
 	{
 		//TODO
-		if (f.mode == Mode::LNK)
+		if (f.mode == Mode::LNK) [[unlikely]]
 		{
 			// Spacing
 			const auto cwidth = wcwidth(GetBackground().ch);
@@ -70,10 +86,10 @@ std::pair<TBStyle, TBStyle> List::DrawFn(std::size_t i, Vec2i pos, int w, bool h
 			}
 
 			// Arrow
-			if (f.lnk.link.size() != 0)
+			if (f.lnk.link.size() != 0) [[likely]]
 				w2 -= Draw::TextLine(Settings::Layout::List::link_arrow, style2(Settings::Style::List::arrow),
 						pos+Vec2i(w2-Util::SizeWide(Settings::Layout::List::link_arrow), 0), w2, trailChar).first;
-			else
+			else [[unlikely]]
 				w2 -= Draw::TextLine(Settings::Layout::List::link_invalid_arrow, style2(Settings::Style::List::arrow_invalid),
 						pos+Vec2i(w2-Util::SizeWide(Settings::Layout::List::link_invalid_arrow), 0), w2, trailChar).first;
 
@@ -92,7 +108,16 @@ std::pair<TBStyle, TBStyle> List::DrawFn(std::size_t i, Vec2i pos, int w, bool h
 	Draw::Horizontal({GetBackground().ch, style(c.name)}, pos+Vec2i(p, 0), w2-p);
 
 	return {style(c.name), style(c.numbers)};
-	OnChangePosition.Notify<EventWhen::AFTER>();
+}
+
+void List::MarkFn(std::size_t i, MarkType mark)
+{
+	File& f = (*m_dir)[i];
+
+	if (f.mark & mark)
+		f.mark &= ~(mark);
+	else
+		f.mark |= mark;
 }
 
 void List::ActionLeft()
@@ -126,7 +151,7 @@ void List::ActionRight()
 
 using namespace std::placeholders;
 List::List(MainWindow* main, const std::string& path, bool input):
-	ListSelect(std::bind(&List::DrawFn, this, _1, _2, _3, _4, _5, _6)),
+	ListSelect(std::bind(&List::DrawFn, this, _1, _2, _3, _4, _5), std::bind(&List::MarkFn, this, _1, _2)),
 	m_main(main),
 	m_mainList(input) // If input is true, then this is the main list
 {
@@ -172,8 +197,6 @@ List::List(MainWindow* main, const std::string& path, bool input):
 
 	AddKeyboardInput(KeyComb(U"LEFT",  [this]() { ActionLeft(); }));
 	AddKeyboardInput(KeyComb(U"RIGHT", [this]() { ActionRight(); }));
-	AddKeyboardInput(KeyComb(U"ENTER", [this]() { ActionRight(); }));
-
 	AddKeyboardInput(KeyComb(U"ENTER", [this]() { ActionRight(); }));
 
 	AddMouseInput({{Vec2i(0, 0), Vec2i(0, 0)}, Mouse::MOUSE_LEFT, [this](const Vec2i& pos){ ActionMouseClick(pos); }});

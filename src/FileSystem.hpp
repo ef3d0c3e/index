@@ -26,7 +26,7 @@ MAKE_CENUM_Q(Mode, std::uint8_t,
 	FIFO, 1<<5,
 	LNK,  1<<6,
 	SOCK, 1<<7,
-)
+);
 
 MAKE_CENUM_Q(Permission, std::uint16_t,
 	NONE, 0,
@@ -39,7 +39,14 @@ MAKE_CENUM_Q(Permission, std::uint16_t,
 	OR,   1<<6,
 	OW,   1<<7,
 	OX,   1<<8,
-)
+);
+
+MAKE_CENUM_Q(MarkType, std::uint8_t,
+	NONE,     0,
+	SELECTED, 1 << 0,
+	TAGGED,   1 << 1,
+	FAV,      1 << 2,
+);
 
 typedef uid_t UserID;
 typedef gid_t GroupID;
@@ -71,6 +78,8 @@ struct File
 	} lnk;
 
 	FtID ftId;
+
+	MarkType mark;
 };
 
 typedef std::function<bool(const File&, const File&, const Sort::Settings&)> SortFn;

@@ -6,7 +6,7 @@ void Menu::Draw()
 {
 	auto x = GetPosition()[0];
 	auto y = GetPosition()[1];
-	const auto w = GetSize()[0];
+	const auto w = GetSize()[0]+1;
 	const auto h = GetSize()[1];
 	const int maxh = m_entries.size()/m_cols + 1;
 	const TBChar trailing{Settings::trailing_character, m_bg.s};
@@ -18,10 +18,11 @@ void Menu::Draw()
 	{
 		const auto width = m_categories[i].second * w / 100;
 		dims[i] = width;
-		const auto p = Draw::TextLine(m_categories[i].first, TextStyle::Underline, Vec2i(x, y), width, trailing).first;
+		sum += width;
+		const auto p = Draw::TextLineStyle(m_categories[i].first, TextStyle::Underline, Vec2i(x, y), width, trailing).first;
 		TBChar bg = m_bg;
 		bg.s.s = static_cast<std::uint32_t>(bg.s.s) | TextStyle::Underline;
-		Draw::Horizontal(bg, Vec2i(x+p, y), width - p + 1);
+		Draw::Horizontal(bg, Vec2i(x+p, y), width - p);
 		x += width;
 	}
 	++y;
@@ -36,7 +37,8 @@ void Menu::Draw()
 	{
 		for (int j = 0; j < static_cast<int>(m_categories.size()); ++j)
 		{
-			Draw::TextLine(m_entries[i*m_cols+j], Vec2i(x, y), dims[j], trailing);
+			const auto p = Draw::TextLine(m_entries[i*m_cols+j], Vec2i(x, y), dims[j], trailing).first;
+			Draw::Horizontal(m_bg, Vec2i(x+p, y), dims[j]-p);
 			x += dims[j];
 		}
 
@@ -61,8 +63,7 @@ void Menu::ActionShow()
 	SetVisible(true);
 }
 
-Menu::Menu(MainWindow* main):
-	m_main(main),
+Menu::Menu():
 	m_bg(U' ', Settings::Style::Menu::background),
 	m_locked(false)
 {

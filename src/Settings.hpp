@@ -3,7 +3,22 @@
 
 #include "Sort.hpp"
 #include "TermboxWidgets/Widgets.hpp"
-#include "Tabline.hpp"
+#include <fstream>
+
+#define LOG(__msg)                                  \
+{                                                   \
+	static bool first = true;                       \
+	std::ofstream logs;                             \
+	if (first)                                      \
+	{                                               \
+		first = false;                              \
+		logs.open("/tmp/index_log", std::ios::ate); \
+	}                                               \
+	else                                            \
+		logs.open("/tmp/index_log", std::ios::app); \
+	logs << __msg;                                  \
+	logs.close();                                   \
+}
 
 namespace Settings
 {
@@ -19,17 +34,16 @@ namespace Settings
 		constexpr Char trailing_character = U'…';
 
 		// MainWindow, {parent, directory}
-		constexpr int mainwindow_ratio[] = {15, 84};
-		constexpr int mainwindow_spacing[] = {1, 1};
+		constexpr auto mainwindow_ratio = Util::make_array(15, 85);
+		constexpr auto mainwindow_spacing = Util::make_array(1, 1);
 
-		// * List
 		namespace List
 		{
 			constexpr bool icons = true;
 			constexpr int icons_width = 2;
 			constexpr bool display_link = true;
-			constexpr Char link_arrow[] = U"->";
-			constexpr Char link_invalid_arrow[] = U"~<";
+			constexpr Char link_arrow[] = U"➜ "; // They are not treated as wide character by wcwidth
+			constexpr Char link_invalid_arrow[] = U"➜ ";
 
 			constexpr Widgets::ListSelectSettings settings{
 				.ScrollTriggerUp = 20,
@@ -70,9 +84,26 @@ namespace Settings
 			constexpr char date_format[] = "%Y-%m-%d %H:%M:%S";
 			constexpr Char unknown_date[] = U"???";
 			constexpr bool display_link = true;
-			constexpr Char link_arrow[] = U"->";
-			constexpr Char link_invalid_arrow[] = U"-<";
-			constexpr Char link_invalid_text[] = U"Invalid link";
+			constexpr Char link_arrow[] = U"➜ ";
+			constexpr Char link_invalid_arrow[] = U"➜ ";
+			constexpr Char link_invalid_text[] = U"Could not resolve link";
+		}
+
+		namespace Marks
+		{
+			constexpr Widgets::ListSelectSettings settings{
+				.ScrollTriggerUp = 20,
+				.ScrollTriggerDown = 20,
+				.LeftMargin = 1,
+				.NumberSpacing = 1,
+				.RightMargin = 1,
+				.NumberBase = 10,
+				.DrawNumbers = true,
+				.RelativeNumbers = true,
+				.NumberRightAlign = true,
+				.TrailingChar = U'~',
+				.Cycling = true,
+			};
 		}
 
 		// * Posix
@@ -98,6 +129,13 @@ namespace Settings
 			constexpr TBStyle arrow{0x40C080, background.s.bg, TextStyle::Bold};
 			constexpr TBStyle arrow_invalid{0xF0A0A0, background.s.bg, TextStyle::Italic};
 			constexpr TBStyle link{0x40C080, background.s.bg, TextStyle::Italic};
+
+			static const std::array<TBString, MarkType::size-1> mark_prefix = Util::make_array // Background will be ignored
+			(
+				TBString{U"[s]", {0x707070, main_window_background.s.bg, TextStyle::Bold}}, // SELECTED
+				TBString{U"*", {0xC04040, main_window_background.s.bg, TextStyle::Bold}}, // TAGGED
+				TBString{U"*", {0xF0D040, main_window_background.s.bg, TextStyle::Bold}} // FAV
+			);
 		}
 		
 		namespace Tabline
@@ -110,6 +148,8 @@ namespace Settings
 			constexpr TBStyle directory_separator{0xF0A0A0, background.s.bg, TextStyle::Bold};
 			constexpr TBStyle selected{0xAFFFFF, background.s.bg, TextStyle::Bold};
 			constexpr TBStyle repeat{0xF0C030, 0x201040, TextStyle::Bold};
+			constexpr TBStyle tab{0xAFAFAF, background.s.bg, TextStyle::Bold};
+			constexpr TBStyle tab_current{0xFF8F9F, background.s.bg, TextStyle::Bold | TextStyle::Underline};
 
 			constexpr TBStyle loading{0xFF0000, background.s.bg, TextStyle::None};
 		}
@@ -158,18 +198,79 @@ namespace Settings
 
 		namespace Menu
 		{
-			constexpr TBStyle background{0xFFFFFF, COLOR_DEFAULT, TextStyle::None};
+			constexpr TBStyle background{0xFFFFFF, 0x202020, TextStyle::None};
+
+			constexpr TBStyle go_menu_categories{0xFFFFFF, 0x202020, TextStyle::Bold};
+			constexpr TBStyle go_menu{0xCFCFCF, COLOR_DEFAULT, TextStyle::None};
+
+			constexpr TBStyle marks_menu_categories{0xFFFFFF, 0x202020, TextStyle::Bold};
+			constexpr TBStyle marks_menu{0xCFCFCF, COLOR_DEFAULT, TextStyle::None};
+
+		}
+
+		namespace Marks
+		{
+			constexpr TBChar background{U' ', 0xFFFFFF, COLOR_DEFAULT};
+			constexpr TBStyle path{0x40D0F0, background.s.bg, TextStyle::Bold};
+			constexpr TBStyle path_hovered{background.s.bg, 0x40D0F0, TextStyle::Bold};
+
+			static const std::array<TBString, MarkType::size-1> mark_prefix = Util::make_array // Background will be ignored
+			(
+				TBString{U"s", {0x707070, main_window_background.s.bg, TextStyle::Bold}}, // SELECTED
+				TBString{U"t", {0xC04040, main_window_background.s.bg, TextStyle::None}}, // TAGGED
+				TBString{U"f", {0xF0D040, main_window_background.s.bg, TextStyle::None}} // FAV
+			);
+
+			static const std::array<TBStyle, MarkType::size-1> mark_numbers = Util::make_array // Background will be ignored
+			(
+				TBStyle{0x707070, main_window_background.s.bg, TextStyle::Underline}, // SELECTED
+				TBStyle{0xC04040, main_window_background.s.bg, TextStyle::Underline}, // TAGGED
+				TBStyle{0xF0D040, main_window_background.s.bg, TextStyle::Underline} // FAV
+			);
 		}
 	}
 
 	namespace Keys
 	{
+		namespace Prompt
+		{
+			constexpr Char cancel[] = U"ESC";
+			constexpr Char submit[] = U"ENTER";
+			constexpr Char remove[] = U"BACKSPACE";
+			constexpr Char word_kill[] = U"C-w";
+
+			constexpr Char left[] = U"LEFT";
+			constexpr Char word_left[] = U"C-LEFT";
+			constexpr Char right[] = U"RIGHT";
+			constexpr Char word_right[] = U"C-RIGHT";
+			constexpr Char begining[] = U"C-a";
+			constexpr Char end[] = U"C-e";
+		}
+
 		namespace Go
 		{
-			const Char top[] = U"g g";
-			const Char bottom[] = U"S-G"; // Will also work for <repeat> G
-			const Char home[] = U"g h";
-			const Char root[] = U"g /";
+			constexpr Char menu[] = U"g";
+			constexpr Char top[] = U"g g";
+			constexpr Char bottom[] = U"S-G"; // Will also work for <repeat> G
+			constexpr Char home[] = U"g h";
+			constexpr Char root[] = U"g /";
+
+			constexpr Char tab_next[] = U"g t";
+			constexpr Char tab_prev[] = U"g S-t";
+			constexpr Char tab_new[] = U"g n";
+			constexpr Char tab_close[] = U"g c";
+		}
+
+		namespace Marks
+		{
+			constexpr Char menu[] = U"m";
+			constexpr Char exit[] = U"ESC";
+			constexpr Char marks[] = U"m m";
+			constexpr Char select[] = U"SPC";
+			constexpr Char select_toggle_all[] = U"v";
+			constexpr Char unselect_all[] = U"m v";
+			constexpr Char tag[] = U"t";
+			constexpr Char fav[] = U"m f";
 		}
 	}
 }

@@ -1,35 +1,26 @@
 #include "Tab.hpp"
 
 std::vector<Tab> Tabs;
-// Load settings TODO
 
-Tab::Tab():
-	m_parentEnabled(true)
+Tab::Tab()
 {
 }
 
 Tab::~Tab()
 {
-	
 }
 
-void Tab::SetMainWindow(MainWindow* main)
+void Tab::SetMainWindow(std::size_t mainId)
 {
-	m_main = main;
+	m_mainId = mainId;
 }
 
-void Tab::SetParentEnabled(bool enabled)
+MainWindow* Tab::GetMainWindow()
 {
-	OnSetParentEnabled.Notify<EventWhen::BEFORE>(enabled);
-	
-	m_parentEnabled = enabled;
-
-	m_main->Resize(Termbox::GetDim());
-
-	OnSetParentEnabled.Notify<EventWhen::AFTER>(enabled);
+	return reinterpret_cast<MainWindow*>(Termbox::GetWidget(m_mainId));
 }
 
-bool Tab::GetParentEnabled() const
+std::size_t Tab::GetMainWindowId()
 {
-	return m_parentEnabled;
+	return m_mainId;
 }

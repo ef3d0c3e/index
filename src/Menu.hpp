@@ -6,7 +6,6 @@ class MainWindow;
 
 class Menu : public Widget
 {
-	MainWindow* m_main;
 	TBChar m_bg;
 
 	std::size_t m_cols;
@@ -21,7 +20,7 @@ public:
 	EventListener<> OnStopShowing;
 	void ActionShow();
 
-	Menu(MainWindow* main);
+	Menu();
 	~Menu();
 
 	void SetTable(std::size_t cols, const std::vector<std::pair<TBString, int>>& categories, const std::vector<TBString>& entries);

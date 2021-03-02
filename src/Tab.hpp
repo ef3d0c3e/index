@@ -5,17 +5,14 @@
 
 class Tab
 {
-	MainWindow* m_main;
-	bool m_parentEnabled;
+	std::size_t m_mainId;
 public:
 	Tab();
 	~Tab();
 
-	void SetMainWindow(MainWindow* main);
-
-	EventListener<bool> OnSetParentEnabled;
-	void SetParentEnabled(bool enabled);
-	bool GetParentEnabled() const;
+	void SetMainWindow(std::size_t mainId);
+	MainWindow* GetMainWindow();
+	std::size_t GetMainWindowId();
 };
 
 extern std::vector<Tab> Tabs;

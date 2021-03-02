@@ -3,7 +3,7 @@
 
 #include "TermboxWidgets/Text.hpp"
 #include <map>
-class File;
+struct File;
 
 typedef std::size_t FtID;
 namespace FileType
@@ -16,30 +16,33 @@ static std::map<StringView, FtID> FullnameFilesMap;
 
 const static auto CompiledIcons = []()
 {
+	constexpr Color default_numbers = 0xFFFFFF;
+	constexpr Color default_size = 0xF0D0D0;
+	constexpr Color default_sizeUnit = 0xF0D0D0;
 	// {{{ Temporary structures
 	struct Colors
 	{
 		Color name;
 		Color icon;
-		Color size;
-		Color sizeUnit;
-		Color numbers;
+		Color size = default_size;
+		Color sizeUnit = default_sizeUnit;
+		Color numbers = default_numbers;
 
 
 		constexpr Colors(Color name = Color())
 		{
-			this->name = icon = size = sizeUnit = numbers = name;
+			this->name = icon = name;
 		}
 
 		constexpr Colors(Color name, Color icon)
 		{
-			this->name = size = sizeUnit = numbers = name;
+			this->name = name;
 			this->icon = icon;
 		}
 
 		constexpr Colors(Color name, Color icon, Color size)
 		{
-			this->name = numbers = name;
+			this->name = name;
 			this->icon = icon;
 			this->size = sizeUnit = size;
 		}
@@ -90,16 +93,16 @@ const static auto CompiledIcons = []()
 	//TODO: constexpr c++20 (gcc11...)
 	static constexpr auto General = Util::make_array(
 		Ft{U"?"sv, {0xFFFFFF}, TextStyle::None}, // unknown
-		Ft{U""sv, {0xFFFFFF, 0xF0D010}, TextStyle::Bold}, // directory
-		Ft{U""sv, {0xFFFFFF, 0x8F8F8F, 0xA0F0D0, 0xD0F000}, TextStyle::None}  // default file
+		Ft{U""sv, {0x40BFFF, 0x40BFFF}, TextStyle::Bold}, // directory
+		Ft{U""sv, {0xFFFFFF, 0x8F8F8F}, TextStyle::None}  // default file
 	);
 
 	static const auto FullnameDir = Util::make_array(
-		Ft2{U""sv, {0xFFFFFF, 0xF0D010}, TextStyle::Bold, {U"Documents"sv}},
-		Ft2{U""sv, {0xFFFFFF, 0xF0D010}, TextStyle::Bold, {U"Downloads"sv}},
-		Ft2{U""sv, {0xFFFFFF, 0xF0D010}, TextStyle::Bold, {U"Music"sv}},
-		Ft2{U""sv, {0xFFFFFF, 0xF0D010}, TextStyle::Bold, {U"Pictures"sv}},
-		Ft2{U""sv, {0xFFFFFF, 0xF0D010}, TextStyle::Bold, {U"Videos"sv}}
+		Ft2{U""sv, {0x40BFFF, 0x40BFFF}, TextStyle::Bold, {U"Documents"sv}},
+		Ft2{U""sv, {0x40BFFF, 0x40BFFF}, TextStyle::Bold, {U"Downloads"sv}},
+		Ft2{U""sv, {0x40BFFF, 0x40BFFF}, TextStyle::Bold, {U"Music"sv}},
+		Ft2{U""sv, {0x40BFFF, 0x40BFFF}, TextStyle::Bold, {U"Pictures"sv}},
+		Ft2{U""sv, {0x40BFFF, 0x40BFFF}, TextStyle::Bold, {U"Videos"sv}}
 	);
 
 	static const auto FullnameFiles = Util::make_array(
@@ -107,8 +110,8 @@ const static auto CompiledIcons = []()
 	);
 
 	static const auto Extensions = Util::make_array(
-		Ft2{U""sv, {0xFFFFFF, 0x4040F0, 0xF0D0D0, 0xD0F000}, TextStyle::None, {U"c"sv, U"h"sv}},
-		Ft2{U""sv, {0xFFFFFF, 0x4040F0, 0xF0D0D0, 0xD0F000}, TextStyle::None, {U"cpp"sv, U"hpp"sv, U"cxx"sv, U"tcc"sv, U"cc"sv, U"hh"sv}}
+		Ft2{U""sv, {0xFFFFFF, 0x4040F0}, TextStyle::None, {U"c"sv, U"h"sv}},
+		Ft2{U""sv, {0xFFFFFF, 0x4040F0}, TextStyle::None, {U"cpp"sv, U"hpp"sv, U"cxx"sv, U"tcc"sv, U"cc"sv, U"hh"sv}}
 	);
 
 	// Fullname

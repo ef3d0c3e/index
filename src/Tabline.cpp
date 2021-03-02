@@ -1,6 +1,7 @@
 #include "Tabline.hpp"
 #include "Settings.hpp"
 #include "List.hpp"
+#include "Tab.hpp"
 #include <unistd.h>
 
 void Tabline::Draw()
@@ -57,9 +58,10 @@ void Tabline::Draw()
 	}
 
 	// Spacing
+	const auto cwidth = wcwidth(m_bg.ch);
 	{
 		Draw::Char(m_bg, Vec2i(x, y));
-		x += wcwidth(m_bg.ch);
+		x += cwidth;
 		if (x >= w)
 			return;
 	}
@@ -92,11 +94,39 @@ void Tabline::Draw()
 		if (x >= w)
 			return;
 	}
+
+	// Tab
+	int w2 = w;
+	{
+		const auto fn = [&](std::size_t i)
+		{
+			// Spacing
+			{
+				Draw::Char(m_bg, GetPosition()+Vec2i(w2-cwidth, 0));
+				w2 -= cwidth;
+			}
+
+			//Tab
+			{
+				const auto s = Util::ToString(i);
+				if (m_main->GetTab() == i) [[unlikely]]
+					w2 -= Draw::TextLine(s, Settings::Style::Tabline::tab_current, GetPosition() + Vec2i(w2-Util::SizeWide(s), 0),
+						w2, {Settings::Layout::trailing_character, Settings::Style::Tabline::tab_current}).first;
+				else [[likely]]
+					w2 -= Draw::TextLine(s, Settings::Style::Tabline::tab, GetPosition() + Vec2i(w2-Util::SizeWide(s), 0),
+						w2, {Settings::Layout::trailing_character, Settings::Style::Tabline::tab}).first;
+			}
+		};
+
+		for (std::size_t i = 0;
+				i < Tabs.size(); ++i)
+			fn(i);
+	}
 	
 	// Fill
 	{
-		Draw::Horizontal(m_bg, Vec2i(x, y), w-x);
-		m_leftSpace = w-x;
+		Draw::Horizontal(m_bg, Vec2i(x, y), w2-x);
+		m_leftSpace = w2-x;
 	}
 	
 }
@@ -106,7 +136,6 @@ void Tabline::DrawRepeat()
 	// Margin
 	auto x = GetPosition()[0]+GetSize()[0];
 	const auto y = GetPosition()[1];
-	const auto w = x;
 	if constexpr (Settings::Layout::Tabline::right_margin != 0)
 	{
 		Draw::Horizontal(m_bg, Vec2i(x-Settings::Layout::Tabline::right_margin, y), Settings::Layout::Tabline::right_margin);
@@ -116,7 +145,7 @@ void Tabline::DrawRepeat()
 		return;
 
 	// Repeat
-	const static auto repeat_len = Util::GetDigitsNum<10>(std::numeric_limits<decltype(Termbox::GetContext().repeat)>::max());
+	//const static auto repeat_len = Util::GetDigitsNum<10>(std::numeric_limits<decltype(Termbox::GetContext().repeat)>::max());
 	if (Termbox::GetContext().hasRepeat)
 	{
 		const auto len = Util::GetDigitsNum<10>(Termbox::GetContext().repeat);

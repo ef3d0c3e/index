@@ -28,7 +28,8 @@ Directory::Directory(const std::string& path):
 
 	wordexp_t p;
 	char** w;
-	wordexp(m_path.c_str(), &p, 0);
+	if (wordexp(m_path.c_str(), &p, 0) != 0)
+		throw Util::Exception("wordexp() failed");
 	w = p.we_wordv;
 	std::string expanded = "";
 	for (std::size_t i = 0; i < p.we_wordc; ++i)
@@ -148,7 +149,9 @@ std::pair<bool, Error> Directory::GetFiles()
 
 		// Filetype
 		f.ftId = FileType::GetFtID(f, name);
-
+		
+		// Mark
+		f.mark = MarkType::NONE;
 	};
 
 	// Chdir
@@ -257,5 +260,7 @@ std::string GetWd(const std::string& path)
 	if (dir == NULL)
 		throw Util::Exception("get_current_dir_name() failed");
 	
-	return dir;
+	const std::string ret = dir;
+	free(dir);
+	return ret;
 }

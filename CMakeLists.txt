@@ -10,9 +10,12 @@ FILE(GLOB SOURCES
 	"src/*.tcc"
 	"src/TermboxWidgets/*.cpp"
 	"src/TermboxWidgets/*.tcc"
+	"src/Actions/*.cpp"
+	"src/Actions/*.tcc"
 )
 
-ADD_EXECUTABLE(${CMAKE_PROJECT_NAME} ${SOURCES})
+ADD_SUBDIRECTORY(libs/fmt)
+ADD_SUBDIRECTORY(src/TermboxWidgets/termbox)
 
-ADD_SUBDIRECTORY("src/TermboxWidgets/termbox")
-TARGET_LINK_LIBRARIES(${CMAKE_PROJECT_NAME} libtermbox-static)
+ADD_EXECUTABLE(${CMAKE_PROJECT_NAME} ${SOURCES})
+TARGET_LINK_LIBRARIES(${CMAKE_PROJECT_NAME} libtermbox-static fmt)
