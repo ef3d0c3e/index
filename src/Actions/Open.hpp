@@ -23,7 +23,7 @@ namespace Actions
 			format(std::move(_format)), flag(_flag)
 		{ }
 
-		std::string GetCommand(const File& f, const std::string& path);
+		std::string GetCommand(const File& f, const std::string& path) const;
 	};
 
 	using namespace std::literals;
@@ -39,9 +39,9 @@ namespace Actions
 
 	namespace Openers
 	{
-		constexpr static Opener TextEditor("vim {file}"sv, Opener::Close | Opener::SupressOutput);
+		constexpr static Opener TextEditor("nvim {file}"sv, Opener::Close);
 		constexpr static Opener ImageViewer("feh {file}"sv, Opener::SetSid);
-		constexpr static Opener AudioPlayer("mpv --no-video {file}"sv, Opener::Close | Opener::SupressOutput);
+		constexpr static Opener AudioPlayer("mpv --no-video {file}"sv, Opener::Close);
 		constexpr static Opener VideoPlayer("mpv {file}"sv, Opener::SetSid);
 		constexpr static Opener PDFViewer("zathura {file}"sv, Opener::SetSid);
 		constexpr static Opener WebBrowser("x-www-browser {file}"sv, Opener::SetSid);
@@ -54,37 +54,37 @@ namespace Actions
 		const static std::map<std::string_view, const Opener*> List =
 		{
 			// Images
-			{"png"sv, &ImageViewer},
-			{"jpg"sv, &ImageViewer},
+			{"png"sv,  &ImageViewer},
+			{"jpg"sv,  &ImageViewer},
 			{"jpeg"sv, &ImageViewer},
-			{"gif"sv, &ImageViewer},
-			{"bmp"sv, &ImageViewer},
-			{"tga"sv, &ImageViewer},
-			{"ppm"sv, &ImageViewer},
-			{"pgm"sv, &ImageViewer},
-			{"pbm"sv, &ImageViewer},
-			{"pnm"sv, &ImageViewer},
-			{"ico"sv, &ImageViewer},
+			{"gif"sv,  &ImageViewer},
+			{"bmp"sv,  &ImageViewer},
+			{"tga"sv,  &ImageViewer},
+			{"ppm"sv,  &ImageViewer},
+			{"pgm"sv,  &ImageViewer},
+			{"pbm"sv,  &ImageViewer},
+			{"pnm"sv,  &ImageViewer},
+			{"ico"sv,  &ImageViewer},
 
 			// Audio
-			{"wav"sv, &AudioPlayer},
+			{"wav"sv,  &AudioPlayer},
 			{"flac"sv, &AudioPlayer},
-			{"tta"sv, &AudioPlayer},
-			{"ape"sv, &AudioPlayer},
-			{"ogg"sv, &AudioPlayer},
-			{"mp3"sv, &AudioPlayer},
+			{"tta"sv,  &AudioPlayer},
+			{"ape"sv,  &AudioPlayer},
+			{"ogg"sv,  &AudioPlayer},
+			{"mp3"sv,  &AudioPlayer},
 			{"opus"sv, &AudioPlayer},
-			{"ac3"sv, &AudioPlayer},
-			{"aac"sv, &AudioPlayer},
+			{"ac3"sv,  &AudioPlayer},
+			{"aac"sv,  &AudioPlayer},
 
 			// Video
-			{"mkv"sv, &VideoPlayer},
-			{"avi"sv, &VideoPlayer},
-			{"mp4"sv, &VideoPlayer},
+			{"mkv"sv,  &VideoPlayer},
+			{"avi"sv,  &VideoPlayer},
+			{"mp4"sv,  &VideoPlayer},
 			{"h264"sv, &VideoPlayer},
 			{"h265"sv, &VideoPlayer},
-			{"vp8"sv, &VideoPlayer},
-			{"vp9"sv, &VideoPlayer},
+			{"vp8"sv,  &VideoPlayer},
+			{"vp9"sv,  &VideoPlayer},
 			{"webm"sv, &VideoPlayer},
 
 			// PDF
@@ -92,8 +92,8 @@ namespace Actions
 
 			// Web browser
 			{"html"sv, &WebBrowser},
-			{"htm"sv, &WebBrowser},
-			{"php"sv, &WebBrowser},
+			{"htm"sv,  &WebBrowser},
+			{"php"sv,  &WebBrowser},
 
 			// Custom
 			{"xcf"sv, &Gimp},
@@ -101,6 +101,8 @@ namespace Actions
 	}
 
 	std::pair<OpenType, const Opener*> GetOpener(const File& f, const std::string& path);
+
+	void Open(const File& f, const std::string& path, const Opener* opener);
 }
 
 #endif // INDEX_ACTIONS_OPEN_HPP

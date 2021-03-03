@@ -1,5 +1,5 @@
 #include "List.hpp"
-#include "Actions.hpp"
+#include "Actions/Actions.hpp"
 #include <algorithm>
 
 std::pair<TBStyle, TBStyle> List::DrawFn(std::size_t i, Vec2i pos, int w, bool hovered, Char trailing) const
@@ -144,7 +144,9 @@ void List::ActionRight()
 	}
 	else
 	{
-		Actions::Open(f, m_dir->GetPath());
+		const auto [openType, opener] = Actions::GetOpener(f, m_dir->GetPath());
+		if (openType == Actions::OpenType::Executable)
+			Actions::Open(f, m_dir->GetPath(), opener);
 	}
 }
 
@@ -162,48 +164,47 @@ List::List(MainWindow* main, const std::string& path, bool input):
 		return;
 
 	// Input
-	AddKeyboardInput(KeyComb(U"DOWN", [this]()
+	AddKeyboardInput(Settings::Keys::List::down, [this]()
 	{
 		Termbox& tb = Termbox::GetTermbox();
 		if (tb.GetContext().repeat == 0) [[likely]]
 			ActionDown();
 		else [[unlikely]]
 			ActionDownN(tb.GetContext().repeat);
-	}));
-	AddKeyboardInput(KeyComb(U"PGDN", [this](){ ActionDownN(10); }));
+	});
+	AddKeyboardInput(Settings::Keys::List::down_page, [this](){ ActionDownN(Settings::Layout::List::page_size); });
 	AddMouseInput(Mouse({Vec2i(0, 0), Vec2i(0, 0)}, Mouse::MOUSE_WHEEL_DOWN,
 				[this](const Vec2i&){ ActionDownN(1); }));
-	AddKeyboardInput(KeyComb(U"UP", [this]()
-	{ 
+	AddKeyboardInput(Settings::Keys::List::up, [this]()
+	{
 		Termbox& tb = Termbox::GetTermbox();
 		if (tb.GetContext().repeat == 0) [[likely]]
 			ActionUp();
 		else [[unlikely]]
 			ActionUpN(tb.GetContext().repeat);
-	}));
-	AddKeyboardInput(KeyComb(U"PGUP", [this](){ ActionUpN(10); }));
+	});
+	AddKeyboardInput(Settings::Keys::List::up_page, [this](){ ActionUpN(Settings::Layout::List::page_size); });
 	AddMouseInput(Mouse({Vec2i(0, 0), Vec2i(0, 0)}, Mouse::MOUSE_WHEEL_UP,
 				[this](const Vec2i&){ ActionUpN(1); }));
 
-	AddKeyboardInput(KeyComb(Settings::Keys::Go::top,  [this](){ ActionSetPosition(0); }));
-	AddKeyboardInput(KeyComb(Settings::Keys::Go::bottom,  [this]()
+	AddKeyboardInput(Settings::Keys::Go::top,  [this](){ ActionSetPosition(0); });
+	AddKeyboardInput(Settings::Keys::Go::bottom,  [this]()
 	{
 		Termbox& tb = Termbox::GetTermbox();
 		if (tb.GetContext().hasRepeat)
 			ActionSetPosition(tb.GetContext().repeat);
 		else
 			ActionSetPosition(GetEntries()-1);
-	}));
+	});
 
-	AddKeyboardInput(KeyComb(U"LEFT",  [this]() { ActionLeft(); }));
-	AddKeyboardInput(KeyComb(U"RIGHT", [this]() { ActionRight(); }));
-	AddKeyboardInput(KeyComb(U"ENTER", [this]() { ActionRight(); }));
+	AddKeyboardInput(Settings::Keys::List::left,  [this]() { ActionLeft(); });
+	AddKeyboardInput(Settings::Keys::List::right, [this]() { ActionRight(); });
 
 	AddMouseInput({{Vec2i(0, 0), Vec2i(0, 0)}, Mouse::MOUSE_LEFT, [this](const Vec2i& pos){ ActionMouseClick(pos); }});
 
 	// Other
-	AddKeyboardInput(KeyComb(Settings::Keys::Go::home, [this]() { m_main->CD("~"); }));
-	AddKeyboardInput(KeyComb(Settings::Keys::Go::root, [this]() { m_main->CD("/"); }));
+	AddKeyboardInput(Settings::Keys::Go::home, [this]() { m_main->CD("~"); });
+	AddKeyboardInput(Settings::Keys::Go::root, [this]() { m_main->CD("/"); });
 }
 
 List::~List()

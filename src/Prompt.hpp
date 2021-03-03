@@ -18,7 +18,7 @@ public:
 	Prompt(const TBString& m_prefix, const String& text = U"");
 	~Prompt();
 
-	EventListener<bool> OnStopShowing; // true -> validated, false -> cancelled
+	EventListener<bool> OnStopShowing; // true -> submited, false -> cancelled
 	void ActionShow();
 
 	void SetBackground(const TBChar& bg);

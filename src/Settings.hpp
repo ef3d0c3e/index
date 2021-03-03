@@ -44,6 +44,7 @@ namespace Settings
 			constexpr bool display_link = true;
 			constexpr Char link_arrow[] = U"➜ "; // They are not treated as wide character by wcwidth
 			constexpr Char link_invalid_arrow[] = U"➜ ";
+			constexpr int page_size = 10;
 
 			constexpr Widgets::ListSelectSettings settings{
 				.ScrollTriggerUp = 20,
@@ -232,6 +233,17 @@ namespace Settings
 
 	namespace Keys
 	{
+		namespace List
+		{
+			constexpr Char up[] = U"UP";
+			constexpr Char up_page[] = U"PGUP";
+			constexpr Char down[] = U"DOWN";
+			constexpr Char down_page[] = U"PGDN";
+			constexpr auto left = Util::make_array(U"LEFT", U"BACKSPACE");
+			constexpr auto right = Util::make_array(U"RIGHT", U"ENTER");
+
+		}
+
 		namespace Prompt
 		{
 			constexpr Char cancel[] = U"ESC";
@@ -274,7 +286,6 @@ namespace Settings
 		}
 	}
 }
-
 
 constexpr auto SortFns = Util::make_array
 (

@@ -247,13 +247,13 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 	// }}}
 
 	// Prompt
-	m_prompt = new Prompt({U"Tab name: ", {0xFFFF00, 0x000000, TextStyle::Bold}}, U"test");
-	m_promptId = AddWidget(m_prompt);
-	m_stateList = SetAllInactive();
-	m_prompt->ActionShow();
-	Termbox::GetContext().noRepeat = true;
-	m_prompt->OnStopShowing.AddEvent([this](bool) { RestoreAllActive(std::move(m_stateList)); Invalidate(); Termbox::GetContext().noRepeat = false; }, EventWhen::AFTER);
-	
+	//m_prompt = new Prompt({U"Tab name: ", {0xFFFF00, 0x000000, TextStyle::Bold}}, U"test");
+	//m_promptId = AddWidget(m_prompt);
+	//m_stateList = SetAllInactive();
+	//m_prompt->ActionShow();
+	//Termbox::GetContext().noRepeat = true;
+	//m_prompt->OnStopShowing.AddEvent([this](bool) { RestoreAllActive(std::move(m_stateList)); Invalidate(); Termbox::GetContext().noRepeat = false; }, EventWhen::AFTER);
+
 
 	UpdateFiles();
 	Resize(Termbox::GetDim());
@@ -317,8 +317,8 @@ void MainWindow::Resize(Vec2i dim)
 	m_marks->SetSize(Vec2i(w, h-2));
 
 	// Prompt
-	m_prompt->SetPosition(Vec2i(0, h-2));
-	m_prompt->SetSize(Vec2i(w, 1));
+	//m_prompt->SetPosition(Vec2i(0, h-2));
+	//m_prompt->SetSize(Vec2i(w, 1));
 }
 
 void MainWindow::UpdateFiles()
