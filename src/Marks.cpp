@@ -181,7 +181,7 @@ void Marks::AddMarks(const Directory* dir)
 void Marks::DelMarks(const std::string& path)
 {
 	const auto it = Shared::marked->find(path);
-	if (it != Shared::marked->end())
+	if (it != Shared::marked->end()) [[likely]]
 		Shared::marked->erase(it);
 	//TODO return...
 
@@ -196,14 +196,24 @@ void Marks::SetMarks(Directory* dir)
 	if (it == Shared::marked->end())
 		return;
 
-	for (std::size_t i = 0; i < dir->Size(); ++i)
+	for (std::size_t i = 0; i < it->second.elems.size(); ++i)
 	{
-		for (const auto& f : it->second.elems)
+		bool matched = false;
+		for (std::size_t j = 0; j < dir->Size(); ++j)
 		{
-			if (f.first != (*dir)[i].name)
-				continue;
-
-			(*dir)[i].mark = f.second;
+			if ((*dir)[j].name == it->second.elems[i].first) [[unlikely]]
+			{
+				(*dir)[j].mark = it->second.elems[i].second;
+				matched = true;
+				break;
+			}
 		}
+		if (!matched) [[unlikely]] // Because some files might have disappeared
+			it->second.elems.erase(it->second.elems.begin()+i);
+	}
+	if (it->second.elems.size() == 0)
+	{
+		Shared::marked->erase(it);
+		SetEntries(Shared::marked->size());
 	}
 }

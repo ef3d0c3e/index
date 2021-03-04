@@ -263,6 +263,18 @@ void List::UpdateFiles()
 	SetEntries(m_dir->Size());
 }
 
+void List::SetShowHidden(bool v)
+{
+	auto s = m_dir->GetSettings();
+	s.HiddenFiles = v;
+	m_dir->SetSettings(std::move(s));
+}
+
+bool List::GetShowHidden() const
+{
+	return m_dir->GetSettings().HiddenFiles;
+}
+
 Directory* List::GetDir()
 {
 	return m_dir;

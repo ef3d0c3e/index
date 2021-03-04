@@ -25,6 +25,9 @@ public:
 	void SetSettings(const Directory::DirectorySettings& settings);
 	void UpdateFiles();
 
+	void SetShowHidden(bool v);
+	bool GetShowHidden() const;
+
 	Directory* GetDir();
 	void SetDir(Directory* dir);
 	void MarkFn(std::size_t i, MarkType mark);

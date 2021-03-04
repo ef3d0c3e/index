@@ -36,7 +36,6 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 		Tab tab;
 		Tabs.push_back(std::move(tab));
 		MainWindow* main = new MainWindow(m_dir->GetDir()->GetPath(), Tabs.size()-1);
-		main->m_marks->SetMarks(main->m_dir->GetDir());
 		Tabs[Tabs.size()-1].SetMainWindow(Termbox::GetTermbox().Termbox::AddWidget(main));
 	}});
 
@@ -105,7 +104,7 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 		Termbox::GetContext().clear = true;
 	}});
 
-	// Directories
+	// * Directories
 	m_dir = new List(this, path, true);
 	m_parent = new List(this, path + "/..", false);
 	if (m_dir->GetDir()->GetPath() == "/")
@@ -117,16 +116,14 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 	m_dir->OnChangePosition.AddEvent([this](){ SetWidgetExpired(m_tablineId, true); }, EventWhen::AFTER);
 	m_dir->OnChangePosition.AddEvent([this](){ SetWidgetExpired(m_statuslineId, true); }, EventWhen::AFTER);
 
-	// Tabline & statusline
+	// * Tabline & statusline
 	m_tabline = new Tabline(this);
 	m_tablineId = AddWidget(m_tabline);
 	m_statusline = new Statusline(this);
 	m_statuslineId = AddWidget(m_statusline);
 
-	//m_tabline->SetLoadingEnabled(true);
-	//m_tabline->SetProcessTimed(true);
-
-	// {{{ Menus
+	// {{{ Go
+	// * Menu
 	m_goMenu = new Menu();
 	m_goMenu->SetTable(2,
 		{
@@ -162,7 +159,7 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 	// }}}
 
 	// {{{ Marks
-	// Menu
+	// * Menu
 	m_marksMenu = new Menu();
 	m_marksMenu->SetTable(2,
 	{
@@ -194,7 +191,7 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 	m_marksMenu->OnStopShowing.AddEvent([this](){ this->Invalidate(); }, EventWhen::AFTER);
 	m_marksMenuId = AddWidget(m_marksMenu);
 
-	// Marks List
+	// * Marks List
 	m_marks = new Marks(this);
 	m_marks->SetVisible(false);
 	m_marks->SetActive(false);
@@ -205,45 +202,80 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 	});
 	m_marksMode = false;
 	m_marksId = AddWidget(m_marks);
-	m_marks->SetMarks(m_dir->GetDir());
 
-	// Keybindings
-	dInput->AddKeyboardInput({Settings::Keys::Marks::marks, [this](){ ToggleMarks(); }});
-	m_dir->AddKeyboardInput(KeyComb(Settings::Keys::Marks::select, [this]()
+	// * Keybindings
+	dInput->AddKeyboardInput(Settings::Keys::Marks::marks, [this](){ ToggleMarks(); });
+	m_dir->AddKeyboardInput(Settings::Keys::Marks::select, [this]()
 	{
 		if (Termbox::GetContext().hasRepeat)
 			m_dir->ActionMarkN(Termbox::GetContext().repeat, MarkType::SELECTED);
 		else
 			m_dir->ActionMarkN(1, MarkType::SELECTED);
-	}));
-	m_dir->AddKeyboardInput({Settings::Keys::Marks::select_toggle_all, [this]()
+	});
+	m_dir->AddKeyboardInput(Settings::Keys::Marks::select_toggle_all, [this]()
 	{
 		for (std::size_t i = 0; i < m_dir->GetDir()->Size(); ++i)
 			m_dir->MarkFn(i, MarkType::SELECTED);
-	}});
-	m_dir->AddKeyboardInput({Settings::Keys::Marks::unselect_all, [this]()
+	});
+	m_dir->AddKeyboardInput(Settings::Keys::Marks::unselect_all, [this]()
 	{
 		for (std::size_t i = 0; i < m_dir->GetDir()->Size(); ++i)
 			(*m_dir->GetDir())[i].mark &= ~(MarkType::SELECTED);
-	}});
-	m_dir->AddKeyboardInput({Settings::Keys::Marks::tag, [this]()
+	});
+	m_dir->AddKeyboardInput(Settings::Keys::Marks::tag, [this]()
 	{
 		if (Termbox::GetContext().hasRepeat)
 			m_dir->ActionMarkN(Termbox::GetContext().repeat, MarkType::TAGGED);
 		else
 			m_dir->ActionMarkN(1, MarkType::TAGGED);
-	}});
-	m_dir->AddKeyboardInput({Settings::Keys::Marks::fav, [this]()
+	});
+	m_dir->AddKeyboardInput(Settings::Keys::Marks::fav, [this]()
 	{
 		if (Termbox::GetContext().hasRepeat)
 			m_dir->ActionMarkN(Termbox::GetContext().repeat, MarkType::FAV);
 		else
 			m_dir->ActionMarkN(1, MarkType::FAV);
+	});
+	m_marks->AddKeyboardInput(Settings::Keys::Marks::exit, [this]() { ToggleMarks(); });
+	// }}}
+
+	// {{{ Show
+	// * Menu
+	m_showMenu = new Menu();
+	m_showMenu->SetTable(3,
+		{
+			{{U"Key",    Settings::Style::Menu::show_menu_categories}, 15},
+			{{U"Status",    Settings::Style::Menu::show_menu_categories}, 15},
+			{{U"Action", Settings::Style::Menu::show_menu_categories}, 70},
+		},
+		{
+			{Settings::Keys::Show::hidden, Settings::Style::Menu::show_menu},
+			Settings::Style::Menu::show_menu_false,
+			{U"Toggle hidden files", Settings::Style::Menu::show_menu},
+		});
+	m_showMenu->AddKeyboardInput({Settings::Keys::Show::menu, [this]() {
+			// Update some of the values
+
+			Termbox::GetContext().dontResetRepeat = true;
+			m_showMenu->ActionShow();
 	}});
-	m_marks->AddKeyboardInput({Settings::Keys::Marks::exit, [this]()
-	{
-		ToggleMarks();
-	}});
+	m_showMenu->OnStopShowing.AddEvent([this]() {
+			Invalidate();
+	}, EventWhen::AFTER);
+	m_showMenuId = AddWidget(m_showMenu);
+	// * Keybindings
+	AddKeyboardInput(Settings::Keys::Show::hidden, [this]() {
+		const bool v = !m_dir->GetShowHidden();
+		m_dir->SetShowHidden(v);
+		m_parent->SetShowHidden(v);
+		UpdateFiles();
+		m_marks->SetMarks(m_dir->GetDir());
+		m_dir->ActionSetPosition(0);
+
+		// Update
+		m_showMenu->GetEntries()[1] = (v)
+		? Settings::Style::Menu::show_menu_true : Settings::Style::Menu::show_menu_false;
+	});
 	// }}}
 
 	// Prompt
@@ -256,6 +288,7 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 
 
 	UpdateFiles();
+	m_marks->SetMarks(m_dir->GetDir());
 	Resize(Termbox::GetDim());
 	// Try to find position of directory in the parent List
 	const auto pos = m_parent->GetDir()->Find(
@@ -285,6 +318,9 @@ void MainWindow::Resize(Vec2i dim)
 
 	m_goMenu->SetPosition(Vec2i(0, h-1-m_goMenu->GetHeight()));
 	m_goMenu->SetSize(Vec2i(w, m_goMenu->GetHeight()));
+
+	m_showMenu->SetPosition(Vec2i(0, h-1-m_showMenu->GetHeight()));
+	m_showMenu->SetSize(Vec2i(w, m_showMenu->GetHeight()));
 
 	// MainWindow layout
 	const int available_width = w-[&]<std::size_t... i>(std::index_sequence<i...>)

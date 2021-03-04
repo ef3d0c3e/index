@@ -35,6 +35,8 @@ class MainWindow : public Window
 	std::size_t m_goMenuId;
 	Menu* m_marksMenu;
 	std::size_t m_marksMenuId;
+	Menu* m_showMenu;
+	std::size_t m_showMenuId;
 
 	Marks* m_marks;
 	std::size_t m_marksId;

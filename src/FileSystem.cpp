@@ -214,6 +214,11 @@ void Directory::SetSettings(const Directory::DirectorySettings& settings)
 	m_settings = settings;
 }
 
+const Directory::DirectorySettings& Directory::GetSettings() const
+{
+	return m_settings;
+}
+
 void Directory::Sort()
 {
 	using namespace std::placeholders;

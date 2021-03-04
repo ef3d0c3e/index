@@ -24,6 +24,7 @@ public:
 	~Menu();
 
 	void SetTable(std::size_t cols, const std::vector<std::pair<TBString, int>>& categories, const std::vector<TBString>& entries);
+	std::vector<TBString>& GetEntries();
 
 	void SetBackground(const TBChar& bg);
 	const TBChar& GetBackground() const;

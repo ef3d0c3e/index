@@ -95,6 +95,11 @@ void Menu::SetTable(std::size_t cols, const std::vector<std::pair<TBString, int>
 	m_entries = entries;
 }
 
+std::vector<TBString>& Menu::GetEntries()
+{
+	return m_entries;
+}
+
 void Menu::SetBackground(const TBChar& bg)
 {
 	m_bg = bg;

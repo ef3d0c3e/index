@@ -207,6 +207,12 @@ namespace Settings
 			constexpr TBStyle marks_menu_categories{0xFFFFFF, 0x202020, TextStyle::Bold};
 			constexpr TBStyle marks_menu{0xCFCFCF, COLOR_DEFAULT, TextStyle::None};
 
+			constexpr TBStyle show_menu_categories{0xFFFFFF, 0x202020, TextStyle::Bold};
+			constexpr TBStyle show_menu{0xCFCFCF, COLOR_DEFAULT, TextStyle::None};
+			const TBString show_menu_none{U"", {0xCFCFCF, COLOR_DEFAULT, TextStyle::None}};
+			const TBString show_menu_true{U"true", {0x5777FF, COLOR_DEFAULT, TextStyle::Bold}};
+			const TBString show_menu_false{U"false", {0xFF5777, COLOR_DEFAULT, TextStyle::Bold}};
+
 		}
 
 		namespace Marks
@@ -241,7 +247,6 @@ namespace Settings
 			constexpr Char down_page[] = U"PGDN";
 			constexpr auto left = Util::make_array(U"LEFT", U"BACKSPACE");
 			constexpr auto right = Util::make_array(U"RIGHT", U"ENTER");
-
 		}
 
 		namespace Prompt
@@ -283,6 +288,12 @@ namespace Settings
 			constexpr Char unselect_all[] = U"m v";
 			constexpr Char tag[] = U"t";
 			constexpr Char fav[] = U"m f";
+		}
+
+		namespace Show
+		{
+			constexpr Char menu[] = U"z";
+			constexpr Char hidden[] = U"z h";
 		}
 	}
 }
