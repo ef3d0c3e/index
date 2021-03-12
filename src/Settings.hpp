@@ -213,6 +213,8 @@ namespace Settings
 			const TBString show_menu_true{U"true", {0x5777FF, COLOR_DEFAULT, TextStyle::Bold}};
 			const TBString show_menu_false{U"false", {0xFF5777, COLOR_DEFAULT, TextStyle::Bold}};
 
+			constexpr TBStyle change_menu_categories{0xFFFFFF, 0x202020, TextStyle::Bold};
+			constexpr TBStyle change_menu{0xCFCFCF, COLOR_DEFAULT, TextStyle::None};
 		}
 
 		namespace Marks
@@ -235,6 +237,14 @@ namespace Settings
 				TBStyle{0xF0D040, main_window_background.s.bg, TextStyle::Underline} // FAV
 			);
 		}
+
+		namespace Change
+		{
+			const TBString change_dir_prompt_prefix(U"cd: ", {0xF0A000, main_window_background.s.bg, TextStyle::Bold});
+			constexpr TBChar change_dir_prompt_bg(U' ', 0xFFFFFF, main_window_background.s.bg, TextStyle::None);
+			const TBString change_name_prompt_prefix(U"rename: ", {0xF0A000, main_window_background.s.bg, TextStyle::Bold});
+			constexpr TBChar change_name_prompt_bg(U' ', 0xFFFFFF, main_window_background.s.bg, TextStyle::None);
+		}
 	}
 
 	namespace Keys
@@ -255,6 +265,7 @@ namespace Settings
 			constexpr Char submit[] = U"ENTER";
 			constexpr Char remove[] = U"BACKSPACE";
 			constexpr Char word_kill[] = U"C-w";
+			constexpr Char word_complete[] = U"TAB";
 
 			constexpr Char left[] = U"LEFT";
 			constexpr Char word_left[] = U"C-LEFT";
@@ -294,6 +305,15 @@ namespace Settings
 		{
 			constexpr Char menu[] = U"z";
 			constexpr Char hidden[] = U"z h";
+			constexpr Char parent[] = U"z p";
+		}
+
+		namespace Change
+		{
+			constexpr Char menu[] = U"c";
+			constexpr Char directory[] = U"c d";
+			constexpr Char name[] = U"c w";
+			constexpr Char name_empty[] = U"c W";
 		}
 	}
 }

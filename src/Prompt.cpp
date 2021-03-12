@@ -35,14 +35,14 @@ Prompt::Prompt(const TBString& prefix, const String& text):
 	SetVisible(false);
 	SetActive(false);
 
-	AddKeyboardInput({U"#SCHAR", [this](){
+	AddKeyboardInput(U"#SCHAR", [this](){
 		const Char ch = Termbox::GetContext().ev.ch;
 		m_text.insert(m_text.begin()+m_position, ch);
 		++m_position;
 		m_cursorPos += wcwidth(ch);
-	}});
+	});
 
-	AddKeyboardInput({Settings::Keys::Prompt::submit, [this](){
+	AddKeyboardInput(Settings::Keys::Prompt::submit, [this](){
 		OnStopShowing.Notify<EventWhen::BEFORE>(true);
 
 		SetVisible(false);
@@ -51,9 +51,9 @@ Prompt::Prompt(const TBString& prefix, const String& text):
 
 		Termbox::GetContext().stopInput = true;
 		OnStopShowing.Notify<EventWhen::AFTER>(true);
-	}});
+	});
 
-	AddKeyboardInput({Settings::Keys::Prompt::cancel, [this](){
+	AddKeyboardInput(Settings::Keys::Prompt::cancel, [this](){
 		OnStopShowing.Notify<EventWhen::BEFORE>(false);
 
 		SetVisible(false);
@@ -62,7 +62,7 @@ Prompt::Prompt(const TBString& prefix, const String& text):
 
 		Termbox::GetContext().stopInput = true;
 		OnStopShowing.Notify<EventWhen::AFTER>(false);
-	}});
+	});
 
 	const auto Left = [this]()
 	{
@@ -101,7 +101,7 @@ Prompt::Prompt(const TBString& prefix, const String& text):
 	AddKeyboardInput({Settings::Keys::Prompt::right, Right});
 	AddKeyboardInput({Settings::Keys::Prompt::remove, Remove});
 
-	AddKeyboardInput({Settings::Keys::Prompt::word_left, [this, Left]() {
+	AddKeyboardInput(Settings::Keys::Prompt::word_left, [this, Left]() {
 		if (m_position < 2) [[unlikely]]
 		{
 			m_position = m_cursorPos = 0;
@@ -117,9 +117,9 @@ Prompt::Prompt(const TBString& prefix, const String& text):
 		
 		for (std::size_t i = m_position; i > pos+1; --i)
 			Left();
-	}});
+	});
 
-	AddKeyboardInput({Settings::Keys::Prompt::word_right, [this, Right]() {
+	AddKeyboardInput(Settings::Keys::Prompt::word_right, [this, Right]() {
 		if (m_position+2 > m_text.size()) [[unlikely]]
 		{
 			m_position = m_text.size()-1;
@@ -137,9 +137,9 @@ Prompt::Prompt(const TBString& prefix, const String& text):
 		
 		for (std::size_t i = m_position; i+1 < pos; ++i)
 			Right();
-	}});
+	});
 
-	AddKeyboardInput({Settings::Keys::Prompt::word_kill, [this, Remove]() {
+	AddKeyboardInput(Settings::Keys::Prompt::word_kill, [this, Remove]() {
 		if (m_position < 2) [[unlikely]]
 		{
 			m_position = m_cursorPos = 0;
@@ -152,16 +152,47 @@ Prompt::Prompt(const TBString& prefix, const String& text):
 		
 		for (std::size_t i = m_position; i > pos; --i)
 			Remove();
-	}});
+	});
 
-	AddKeyboardInput({Settings::Keys::Prompt::begining, [this]() {
+	AddKeyboardInput(Settings::Keys::Prompt::begining, [this]() {
 		m_position = m_cursorPos = 0;
-	}});
+	});
 
-	AddKeyboardInput({Settings::Keys::Prompt::end, [this]() {
+	AddKeyboardInput(Settings::Keys::Prompt::end, [this]() {
 		m_position = m_text.size();
 		m_cursorPos = Util::SizeWide(m_text);
-	}});
+	});
+
+	AddKeyboardInput(Settings::Keys::Prompt::word_complete, [this, Right]() {
+		if (m_completion.empty())
+			return;
+		auto pos = m_text.rfind(U' ', m_position);
+		if (pos == String::npos)
+			pos = 0;
+		else
+			++pos;
+		const String word = m_text.substr(pos, m_position-pos);
+		if (word.size() == 0)
+			return;
+
+		std::cout << Util::StringConvert<char>(word) << " ";
+		for (const auto& w : m_completion)
+		{
+			if (w.compare(0, word.size(), word))
+				continue;
+
+			const auto sz = m_text.size();
+			const auto added = w.size() - word.size();
+			String text = m_text.substr(0, pos) + w;
+			if (pos+w.size() < sz)
+				text += m_text.substr(pos+word.size());
+			m_text = text;
+
+			for (std::size_t i = 0; i < added; ++i)
+				Right();
+			break;
+		}
+	});
 }
 
 Prompt::~Prompt()
@@ -174,6 +205,30 @@ void Prompt::ActionShow()
 	SetActive(true);
 }
 
+void Prompt::SetPrefix(const TBString& prefix)
+{
+	m_prefix = prefix;
+	m_prefixWidth = prefix.SizeWide();
+}
+
+const TBString& Prompt::GetPrefix() const
+{
+	return m_prefix;
+}
+
+void Prompt::SetText(const String& text)
+{
+	m_text = text;
+	m_position = text.size();
+	m_cursorPos = Util::SizeWide(text);
+}
+
+const String& Prompt::GetText() const
+{
+	return m_text;
+}
+
+
 void Prompt::SetBackground(const TBChar& bg)
 {
 	m_bg = bg;
@@ -182,4 +237,9 @@ void Prompt::SetBackground(const TBChar& bg)
 const TBChar& Prompt::GetBackground() const
 {
 	return m_bg;
+}
+
+void Prompt::SetCompletion(const std::vector<String>& completion)
+{
+	m_completion = completion;
 }

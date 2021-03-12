@@ -38,6 +38,9 @@ class MainWindow : public Window
 	Menu* m_showMenu;
 	std::size_t m_showMenuId;
 
+	Menu* m_changeMenu;
+	std::size_t m_changeMenuId;
+
 	Marks* m_marks;
 	std::size_t m_marksId;
 	bool m_marksMode;
@@ -45,7 +48,7 @@ class MainWindow : public Window
 	Prompt* m_prompt;
 	std::size_t m_promptId;
 
-	std::vector<std::pair<Widget*, bool>> m_stateList;
+	std::vector<std::pair<Widget*, bool>> m_promptStateList;
 
 	std::size_t m_tab;
 	//TextBox? m_preview;
@@ -55,7 +58,7 @@ class MainWindow : public Window
 	std::size_t m_sortFn;
 	Sort::Settings m_sortSettings;
 
-	// Settings
+	// Setting:
 	bool m_parentEnabled;
 
 	void OnChangeDir();

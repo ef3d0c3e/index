@@ -164,6 +164,8 @@ public:
 	/// \returns The id of the first element that matched (else -1)
 	////////////////////////////////////////////////
 	std::size_t Find(const String& name, Mode mode) const;
+
+	void Rename(); // TODO
 };
 
 std::string GetWd(const std::string& path);

@@ -24,10 +24,10 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 	AddWidget(dInput);
 
 	// General input
-	dInput->AddKeyboardInput({Settings::Keyboard::quit, [](){ Termbox::GetTermbox().GetContext().stop = true; }});
+	dInput->AddKeyboardInput(Settings::Keyboard::quit, [](){ Termbox::GetTermbox().GetContext().stop = true; });
 
-	// Tabs
-	dInput->AddKeyboardInput({Settings::Keys::Go::tab_new, [this]()
+	// {{{ Tab
+	dInput->AddKeyboardInput(Settings::Keys::Go::tab_new, [this]()
 	{
 		SetVisible(false);
 		SetActive(false);
@@ -37,9 +37,9 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 		Tabs.push_back(std::move(tab));
 		MainWindow* main = new MainWindow(m_dir->GetDir()->GetPath(), Tabs.size()-1);
 		Tabs[Tabs.size()-1].SetMainWindow(Termbox::GetTermbox().Termbox::AddWidget(main));
-	}});
+	});
 
-	dInput->AddKeyboardInput({Settings::Keys::Go::tab_next, [&]()
+	dInput->AddKeyboardInput(Settings::Keys::Go::tab_next, [&]()
 	{
 		if (Tabs.size() == 1)
 			return;
@@ -59,9 +59,9 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 		win->Invalidate();
 		win->m_marks->SetMarks(win->m_dir->GetDir());
 		Termbox::GetContext().clear = true;
-	}});
+	});
 
-	dInput->AddKeyboardInput({Settings::Keys::Go::tab_prev, [this]()
+	dInput->AddKeyboardInput(Settings::Keys::Go::tab_prev, [this]()
 	{
 		if (Tabs.size() == 1)
 			return;
@@ -81,9 +81,9 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 		win->Invalidate();
 		win->m_marks->SetMarks(win->m_dir->GetDir());
 		Termbox::GetContext().clear = true;
-	}});
+	});
 
-	dInput->AddKeyboardInput({Settings::Keys::Go::tab_close, [this]()
+	dInput->AddKeyboardInput(Settings::Keys::Go::tab_close, [this]()
 	{
 		if (Tabs.size() == 1)
 			return;
@@ -102,7 +102,8 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 		win->SetActive(true);
 		win->Invalidate();
 		Termbox::GetContext().clear = true;
-	}});
+	});
+	// }}}
 
 	// * Directories
 	m_dir = new List(this, path, true);
@@ -121,6 +122,17 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 	m_tablineId = AddWidget(m_tabline);
 	m_statusline = new Statusline(this);
 	m_statuslineId = AddWidget(m_statusline);
+
+	// * Prompt
+	m_prompt = new Prompt({U"", Settings::Style::default_text_style}, U"");
+	m_promptId = AddWidget(m_prompt);
+	m_prompt->OnStopShowing.AddEvent([this](bool) { RestoreAllActive(std::move(m_promptStateList)); Invalidate(); Termbox::GetContext().noRepeat = false; }, EventWhen::AFTER);
+	auto show_prompt = [this]()
+	{
+		m_promptStateList = SetAllInactive();
+		m_prompt->ActionShow();
+		Termbox::GetContext().noRepeat = true;
+	};
 
 	// {{{ Go
 	// * Menu
@@ -148,10 +160,10 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 			{Settings::Keys::Go::tab_close, Settings::Style::Menu::go_menu},
 			{U"Close tab",                  Settings::Style::Menu::go_menu},
 		});
-	m_goMenu->AddKeyboardInput({Settings::Keys::Go::menu, [this](){
+	m_goMenu->AddKeyboardInput(Settings::Keys::Go::menu, [this](){
 			Termbox::GetContext().dontResetRepeat = true;
 			m_goMenu->ActionShow();
-	}});
+	});
 	m_goMenu->OnStopShowing.AddEvent([this](){
 			Invalidate();
 	}, EventWhen::AFTER);
@@ -180,14 +192,14 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 			{Settings::Keys::Marks::fav,               Settings::Style::Menu::marks_menu},
 			{U"Add current file to favorite",          Settings::Style::Menu::marks_menu},
 	});
-	m_marksMenu->AddKeyboardInput({Settings::Keys::Marks::menu, [this]()
+	m_marksMenu->AddKeyboardInput(Settings::Keys::Marks::menu, [this]()
 	{
 		if (m_marksMenu->IsVisible())
 			return;
 
 		Termbox::GetContext().dontResetRepeat = true;
 		m_marksMenu->ActionShow();
-	}});
+	});
 	m_marksMenu->OnStopShowing.AddEvent([this](){ this->Invalidate(); }, EventWhen::AFTER);
 	m_marksMenuId = AddWidget(m_marksMenu);
 
@@ -252,19 +264,22 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 			{Settings::Keys::Show::hidden, Settings::Style::Menu::show_menu},
 			Settings::Style::Menu::show_menu_false,
 			{U"Toggle hidden files", Settings::Style::Menu::show_menu},
+			{Settings::Keys::Show::parent, Settings::Style::Menu::show_menu},
+			Settings::Style::Menu::show_menu_true,
+			{U"Toggle parent pane", Settings::Style::Menu::show_menu},
 		});
-	m_showMenu->AddKeyboardInput({Settings::Keys::Show::menu, [this]() {
+	m_showMenu->AddKeyboardInput(Settings::Keys::Show::menu, [this]() {
 			// Update some of the values
 
 			Termbox::GetContext().dontResetRepeat = true;
 			m_showMenu->ActionShow();
-	}});
+	});
 	m_showMenu->OnStopShowing.AddEvent([this]() {
 			Invalidate();
 	}, EventWhen::AFTER);
 	m_showMenuId = AddWidget(m_showMenu);
 	// * Keybindings
-	AddKeyboardInput(Settings::Keys::Show::hidden, [this]() {
+	m_dir->AddKeyboardInput(Settings::Keys::Show::hidden, [this]() {
 		const bool v = !m_dir->GetShowHidden();
 		m_dir->SetShowHidden(v);
 		m_parent->SetShowHidden(v);
@@ -276,16 +291,85 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 		m_showMenu->GetEntries()[1] = (v)
 		? Settings::Style::Menu::show_menu_true : Settings::Style::Menu::show_menu_false;
 	});
+
+	m_dir->AddKeyboardInput(Settings::Keys::Show::parent, [this]() {
+		m_parent->SetVisible(!m_parent->IsVisible());
+		Invalidate();
+
+		// Update
+		m_showMenu->GetEntries()[4] = (m_parent->IsVisible())
+		? Settings::Style::Menu::show_menu_true : Settings::Style::Menu::show_menu_false;
+	});
 	// }}}
 
-	// Prompt
-	//m_prompt = new Prompt({U"Tab name: ", {0xFFFF00, 0x000000, TextStyle::Bold}}, U"test");
-	//m_promptId = AddWidget(m_prompt);
-	//m_stateList = SetAllInactive();
-	//m_prompt->ActionShow();
-	//Termbox::GetContext().noRepeat = true;
-	//m_prompt->OnStopShowing.AddEvent([this](bool) { RestoreAllActive(std::move(m_stateList)); Invalidate(); Termbox::GetContext().noRepeat = false; }, EventWhen::AFTER);
+	// {{{ Change
+	// * Menu
+	m_changeMenu = new Menu();
+	m_changeMenu->SetTable(2,
+	{
+		{{U"Key",    Settings::Style::Menu::change_menu_categories}, 15},
+		{{U"Action", Settings::Style::Menu::change_menu_categories}, 85},
+	},
+	{
+			{Settings::Keys::Change::directory,  Settings::Style::Menu::change_menu},
+			{U"Change directory",                Settings::Style::Menu::change_menu},
+			{Settings::Keys::Change::name,       Settings::Style::Menu::change_menu},
+			{U"Modify name",                     Settings::Style::Menu::change_menu},
+			{Settings::Keys::Change::name_empty, Settings::Style::Menu::change_menu},
+			{U"Set name",                        Settings::Style::Menu::change_menu},
+	});
+	m_changeMenu->AddKeyboardInput(Settings::Keys::Change::menu, [this]()
+	{
+		if (m_changeMenu->IsVisible())
+			return;
 
+		Termbox::GetContext().dontResetRepeat = true;
+		m_changeMenu->ActionShow();
+	});
+	m_changeMenu->OnStopShowing.AddEvent([this](){ this->Invalidate(); }, EventWhen::AFTER);
+	m_changeMenuId = AddWidget(m_changeMenu);
+	// * Keybindings
+	dInput->AddKeyboardInput(Settings::Keys::Change::directory, [this, show_prompt]() {
+		m_prompt->SetPrefix(Settings::Style::Change::change_dir_prompt_prefix);
+		m_prompt->SetBackground(Settings::Style::Change::change_dir_prompt_bg);
+		m_prompt->SetText(U"");
+		show_prompt();
+
+		m_prompt->OnStopShowing.AddEvent([this](bool v){
+			if (!v)
+				return;
+			CD(Util::StringConvert<char>(m_prompt->GetText()));
+		}, EventWhen::AFTER_ONCE);
+	});
+
+	dInput->AddKeyboardInput(Settings::Keys::Change::name, [this, show_prompt]() {
+		m_prompt->SetPrefix(Settings::Style::Change::change_name_prompt_prefix);
+		m_prompt->SetBackground(Settings::Style::Change::change_name_prompt_bg);
+		const File& f = (*m_dir->GetDir())[m_dir->GetPos()];
+		m_prompt->SetText(f.name);
+		m_prompt->SetCompletion({f.name});
+		show_prompt();
+		
+		m_prompt->OnStopShowing.AddEvent([this](bool v){
+			if (!v)
+				return;
+		}, EventWhen::AFTER_ONCE);
+	});
+
+	dInput->AddKeyboardInput(Settings::Keys::Change::name_empty, [this, show_prompt]() {
+		m_prompt->SetPrefix(Settings::Style::Change::change_name_prompt_prefix);
+		m_prompt->SetBackground(Settings::Style::Change::change_name_prompt_bg);
+		const File& f = (*m_dir->GetDir())[m_dir->GetPos()];
+		m_prompt->SetText(U"");
+		m_prompt->SetCompletion({f.name});
+		show_prompt();
+		
+		m_prompt->OnStopShowing.AddEvent([this](bool v){
+			if (!v)
+				return;
+		}, EventWhen::AFTER_ONCE);
+	});
+	// }}}
 
 	UpdateFiles();
 	m_marks->SetMarks(m_dir->GetDir());
@@ -322,6 +406,9 @@ void MainWindow::Resize(Vec2i dim)
 	m_showMenu->SetPosition(Vec2i(0, h-1-m_showMenu->GetHeight()));
 	m_showMenu->SetSize(Vec2i(w, m_showMenu->GetHeight()));
 
+	m_changeMenu->SetPosition(Vec2i(0, h-1-m_changeMenu->GetHeight()));
+	m_changeMenu->SetSize(Vec2i(w, m_changeMenu->GetHeight()));
+
 	// MainWindow layout
 	const int available_width = w-[&]<std::size_t... i>(std::index_sequence<i...>)
 	{
@@ -353,8 +440,8 @@ void MainWindow::Resize(Vec2i dim)
 	m_marks->SetSize(Vec2i(w, h-2));
 
 	// Prompt
-	//m_prompt->SetPosition(Vec2i(0, h-2));
-	//m_prompt->SetSize(Vec2i(w, 1));
+	m_prompt->SetPosition(Vec2i(0, h-2));
+	m_prompt->SetSize(Vec2i(w, 1));
 }
 
 void MainWindow::UpdateFiles()
