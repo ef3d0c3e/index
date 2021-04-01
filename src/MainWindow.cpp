@@ -126,7 +126,11 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 	// * Prompt
 	m_prompt = new Prompt({U"", Settings::Style::default_text_style}, U"");
 	m_promptId = AddWidget(m_prompt);
-	m_prompt->OnStopShowing.AddEvent([this](bool) { RestoreAllActive(std::move(m_promptStateList)); Invalidate(); Termbox::GetContext().noRepeat = false; }, EventWhen::AFTER);
+	m_prompt->OnStopShowing.AddEvent([this](bool) {
+		RestoreAllActive(std::move(m_promptStateList));
+		Invalidate();
+		Termbox::GetContext().noRepeat = false;
+	}, EventWhen::AFTER);
 	auto show_prompt = [this]()
 	{
 		m_promptStateList = SetAllInactive();
@@ -367,6 +371,27 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 		m_prompt->OnStopShowing.AddEvent([this](bool v){
 			if (!v)
 				return;
+		}, EventWhen::AFTER_ONCE);
+	});
+	// }}}
+
+	// {{{ Filter
+	dInput->AddKeyboardInput(Settings::Keys::filter, [this, show_prompt]() {
+		m_prompt->SetPrefix(Settings::Style::Filter::filter_prompt_prefix);
+		m_prompt->SetBackground(Settings::Style::Filter::filter_prompt_bg);
+		m_prompt->SetText(m_dir->GetDir()->GetFilter().Match);
+		show_prompt();
+
+		m_prompt->OnStopShowing.AddEvent([this](bool v){
+			if (!v)
+				return;
+			auto filter = m_dir->GetDir()->GetFilter();
+			filter.Match = m_prompt->GetText();
+			m_dir->GetDir()->SetFilter(filter);
+			m_dir->GetDir()->Filter();
+			m_dir->GetDir()->Sort();
+			m_dir->SetEntries(m_dir->GetDir()->Size());
+			SetWidgetExpired(m_dirId, true);
 		}, EventWhen::AFTER_ONCE);
 	});
 	// }}}

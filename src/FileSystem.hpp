@@ -3,6 +3,7 @@
 
 #include "TermboxWidgets/Util.hpp"
 #include "FileType.hpp"
+class MainWindow;
 
 typedef decltype(errno) Error;
 
@@ -82,6 +83,17 @@ struct File
 	MarkType mark;
 };
 
+struct FileMatch
+{
+	MAKE_CENUMV_Q(MatchType, std::uint8_t,
+		FILTER, 0,
+		FIND, 1, // TODO...
+	);
+	std::vector<std::tuple<MatchType, std::size_t, std::size_t>> matches; // <pos, size>
+
+	FileMatch() {}
+};
+
 typedef std::function<bool(const File&, const File&, const Sort::Settings&)> SortFn;
 
 ////////////////////////////////////////////////
@@ -92,17 +104,24 @@ class Directory
 	std::string m_path; // Original path
 	std::string m_pathResolvedUnscaped; // Resolved
 
-	std::vector<File> m_files;
+	std::vector <File> m_oFiles; // All the files (unfiltered)
+	std::vector<std::pair<File*, FileMatch>> m_files;
 
 public:
 	struct DirectorySettings
 	{
-		bool HiddenFiles = false;
-
 		Sort::Settings SortSettings{};
+	};
+
+	struct DirectoryFilter
+	{
+		// Do something about passing it to parent/child
+		bool HiddenFiles = false; // false -> no hidden files
+		String Match = U"";
 	};
 private:
 	DirectorySettings m_settings;
+	DirectoryFilter m_filter;
 public:
 
 	Directory(const std::string& path);
@@ -123,15 +142,27 @@ public:
 	File& operator[](std::size_t i);
 
 	////////////////////////////////////////////////
+	/// \brief Get a file from the directory
+	/// \param i The index of the file
+	/// \returns The file at index i and its match information
+	/// \warn Performs no bound checks
+	////////////////////////////////////////////////
+	const std::pair<const File&, const FileMatch&> Get(std::size_t i) const;
+	std::pair<File&, FileMatch&> Get(std::size_t i);
+
+	////////////////////////////////////////////////
 	/// \brief Get the number of files in the directory
 	/// \returns The number of files
 	////////////////////////////////////////////////
 	const std::size_t Size() const;
 
 	////////////////////////////////////////////////
+	/// \brief Filter oFiles and store the passing files in files
+	////////////////////////////////////////////////
+	void Filter();
+
+	////////////////////////////////////////////////
 	/// \brief Sort the files in the directory
-	/// \param fn The sort function
-	/// \param settings The sort settings
 	////////////////////////////////////////////////
 	void Sort();
 
@@ -146,6 +177,18 @@ public:
 	/// \returns The current settings
 	////////////////////////////////////////////////
 	const DirectorySettings& GetSettings() const;
+
+	////////////////////////////////////////////////
+	/// \brief Change the filter
+	/// \param s The new filter
+	////////////////////////////////////////////////
+	void SetFilter(const DirectoryFilter& f);
+
+	////////////////////////////////////////////////
+	/// \brief Get the filter
+	/// \returns The current filter
+	////////////////////////////////////////////////
+	const DirectoryFilter& GetFilter() const;
 
 	////////////////////////////////////////////////
 	/// \brief Get the path of the directory
@@ -163,9 +206,15 @@ public:
 	/// \brief Get the first element matching the query
 	/// \returns The id of the first element that matched (else -1)
 	////////////////////////////////////////////////
-	std::size_t Find(const String& name, Mode mode) const;
+	std::size_t Find(const String& name, Mode mode, std::size_t beg = 0) const;
 
-	void Rename(); // TODO
+	////////////////////////////////////////////////
+	/// \brief Renames a path
+	/// \param main The main window
+	/// \param oldName The current path
+	/// \param newName what to rename it to
+	////////////////////////////////////////////////
+	void Rename(MainWindow* main, const std::string& oldName, const std::string& newName);
 };
 
 std::string GetWd(const std::string& path);

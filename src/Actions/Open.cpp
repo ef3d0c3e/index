@@ -53,7 +53,6 @@ bool Actions::Openers::isText(const File& f, const std::string& path, const std:
 	return true;
 }
 
-
 std::pair<Actions::OpenType, const Actions::Opener*> Actions::GetOpener(const File& f, const std::string& path)
 {
 	const auto pos = f.name.rfind(U'.');

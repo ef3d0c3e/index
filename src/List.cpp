@@ -4,7 +4,7 @@
 
 std::pair<TBStyle, TBStyle> List::DrawFn(std::size_t i, Vec2i pos, int w, bool hovered, Char trailing) const
 {
-	const File& f = (*m_dir)[i];
+	const auto& [f, match] = m_dir->Get(i);
 	auto [icon, c, ts] = FileType::CompiledIcons[f.ftId];
 	const TBChar trailChar{trailing, {c.name, Settings::Style::List::background.s.bg, ts}};
 
@@ -100,7 +100,33 @@ std::pair<TBStyle, TBStyle> List::DrawFn(std::size_t i, Vec2i pos, int w, bool h
 	}
 
 	// File
-	p += Draw::TextLine(f.name, style(c.name), pos+Vec2i(p,0), w2-p, trailChar).first;
+	if (!match.matches.empty())
+	{
+		TBString tbs(f.name, style(c.name));
+		for (const auto& m : match.matches)
+		{
+			const auto& [t, pos, len] = m;
+			TBStyle s;
+			switch (t)
+			{
+				case FileMatch::FILTER:
+					s = Settings::Style::Filter::filter_match;
+					break;
+				default:
+					s = style(c.name);
+			}
+
+			for (std::size_t i = 0; i < len; ++i)
+			{
+				tbs[pos+i].s.bg = s.bg;
+				tbs[pos+i].s.s  = s.s;
+			}
+		}
+
+		p += Draw::TextLine(tbs, pos+Vec2i(p,0), w2-p, trailChar).first;
+	}
+	else
+		p += Draw::TextLine(f.name, style(c.name), pos+Vec2i(p,0), w2-p, trailChar).first;
 	if (ts & TextStyle::Underline)
 		ts = static_cast<int>(ts & (~TextStyle::Underline));
 
@@ -265,14 +291,14 @@ void List::UpdateFiles()
 
 void List::SetShowHidden(bool v)
 {
-	auto s = m_dir->GetSettings();
-	s.HiddenFiles = v;
-	m_dir->SetSettings(std::move(s));
+	auto f = m_dir->GetFilter();
+	f.HiddenFiles = v;
+	m_dir->SetFilter(std::move(f));
 }
 
 bool List::GetShowHidden() const
 {
-	return m_dir->GetSettings().HiddenFiles;
+	return m_dir->GetFilter().HiddenFiles;
 }
 
 Directory* List::GetDir()

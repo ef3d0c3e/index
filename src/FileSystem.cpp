@@ -7,6 +7,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <cstring>
+#include <fmt/format.h>
+#include "MainWindow.hpp"
 
 Permission& operator|=(Permission& l, const Permission& r)
 {
@@ -91,7 +93,7 @@ std::pair<bool, Error> Directory::GetFiles()
 					buf[bufsiz-1] = 0;
 
 					f.lnk.link = buf;
-					f.lnk.name = Util::StringConvert<Char>(std::string(buf));
+					f.lnk.name = Util::StringConvert<Char>(f.lnk.link);
 
 					struct stat64 sb2;
 					if (stat64(buf, &sb2) != -1)
@@ -158,8 +160,8 @@ std::pair<bool, Error> Directory::GetFiles()
 	if (chdir(m_pathResolvedUnscaped.c_str()) == -1)
 		return {true, errno};
 
-	m_files.clear();
-	m_files.reserve(Settings::directory_block_size);
+	m_oFiles.clear();
+	m_oFiles.reserve(Settings::directory_block_size);
 
 	DIR* dir = opendir(m_pathResolvedUnscaped.c_str());
 	if (dir == NULL)
@@ -173,35 +175,45 @@ std::pair<bool, Error> Directory::GetFiles()
 		if (pent == NULL)
 			throw Util::Exception("readdir64() returned NULL");
 		if (i % Settings::directory_block_size && i != 0)
-			m_files.reserve(i+Settings::directory_block_size);
+			m_oFiles.reserve(i+Settings::directory_block_size);
 
-		if (strcmp(pent->d_name, ".") == 0 || strcmp(pent->d_name, "..") == 0) { }
-		else if (pent->d_name[0] == '.' && !m_settings.HiddenFiles) {}
-		else
+		if (strcmp(pent->d_name, ".") != 0 && strcmp(pent->d_name, "..") != 0)
 		{
 			const std::string name = m_pathResolvedUnscaped + "/" + pent->d_name;
 			File f;
 			f.name = Util::StringConvert<Char>(std::string(pent->d_name));
 			Populate(f, m_pathResolvedUnscaped + "/" + pent->d_name);
 
-			m_files.push_back(f);
+			m_oFiles.push_back(f);
 			++i;
 		}
 	}
 
 	closedir(dir);
 
+	Filter();
+
 	return {false, errno};
 }
 
 const File& Directory::operator[](std::size_t i) const
 {
-	return m_files[i];
+	return *(m_files[i].first);
 }
 
 File& Directory::operator[](std::size_t i)
 {
-	return m_files[i];
+	return *(m_files[i].first);
+}
+
+const std::pair<const File&, const FileMatch&> Directory::Get(std::size_t i) const
+{
+	return {*m_files[i].first, m_files[i].second};
+}
+
+std::pair<File&, FileMatch&>Directory::Get(std::size_t i)
+{
+	return {*m_files[i].first, m_files[i].second};
 }
 
 const std::size_t Directory::Size() const
@@ -217,6 +229,70 @@ void Directory::SetSettings(const Directory::DirectorySettings& settings)
 const Directory::DirectorySettings& Directory::GetSettings() const
 {
 	return m_settings;
+}
+
+void Directory::SetFilter(const Directory::DirectoryFilter& filter)
+{
+	m_filter = filter;
+}
+
+const Directory::DirectoryFilter& Directory::GetFilter() const
+{
+	return m_filter;
+}
+
+void Directory::Filter()
+{
+	m_files.clear();
+	m_files.reserve(m_oFiles.size());
+	if (m_filter.Match.empty())
+		goto noRegex;
+
+	try
+	{
+		const std::wregex re(Util::StringConvert<wchar_t>(m_filter.Match), Settings::Filter::regex_mode);
+
+#pragma omp parallel if(Settings::Filter::use_parallel) shared(m_files)
+		{
+			std::size_t i;
+#pragma omp for schedule(dynamic) private(i)
+			for (i = 0; i < m_oFiles.size(); ++i)
+			{
+				if (m_oFiles[i].name.size() == 0 || (!m_filter.HiddenFiles && m_oFiles[i].name[0] == U'.'))
+					continue;
+
+				const auto s = Util::StringConvert<wchar_t>(m_oFiles[i].name);
+				if(std::wsmatch m; std::regex_search(s, m, re))
+				{
+					FileMatch match;
+					for (std::size_t j = 0; j < m.size(); ++j)
+					{
+						match.matches.push_back({FileMatch::FILTER, m.position(j), m.length(j)});
+					}
+
+					m_files.push_back({&m_oFiles[i], match});
+				}
+			}
+		}
+		return;
+	}
+	catch (std::regex_error& e)
+	{ }
+
+noRegex:
+	// If regex is invalid, we use the default list
+#pragma omp parallel if(Settings::Filter::use_parallel) shared(m_files)
+	{
+		std::size_t i;
+#pragma omp for schedule(dynamic) private(i)
+		for (i = 0; i < m_oFiles.size(); ++i)
+		{
+			if (m_oFiles[i].name.size() == 0 || (!m_filter.HiddenFiles && m_oFiles[i].name[0] == U'.'))
+				continue;
+
+			m_files.push_back({&m_oFiles[i], FileMatch{}});
+		}
+	}
 }
 
 void Directory::Sort()
@@ -239,11 +315,11 @@ std::string Directory::GetFolderName() const
 	return m_pathResolvedUnscaped.substr(pos+1);
 }
 
-std::size_t Directory::Find(const String& name, Mode mode) const
+std::size_t Directory::Find(const String& name, Mode mode, std::size_t beg) const
 {
-	for (std::size_t i = 0; i < m_files.size(); ++i)
+	for (std::size_t i = beg; i < m_files.size(); ++i)
 	{
-		const File& f = m_files[i];
+		const File& f = *m_files[i].first;
 
 		if (f.mode != mode)
 			continue;
@@ -254,6 +330,72 @@ std::size_t Directory::Find(const String& name, Mode mode) const
 	}
 
 	return static_cast<std::size_t>(-1);
+}
+
+void Directory::Rename(MainWindow* main, const std::string& oldName, const std::string& newName)
+{
+	const int err = rename(oldName.c_str(), newName.c_str());
+	if (err == -1)
+	{
+		// In theory, all error should concern newName only, as the user cannot choose oldName
+		const String fromTo = Util::StringConvert<Char>(fmt::format(Settings::Layout::error_rename_from_to, oldName, newName));
+		switch (errno)
+		{
+			case EACCES:
+			case EPERM:
+				main->Error(U"Cannot rename " + fromTo + U": permission denied");
+				break;
+			case EBUSY:
+				main->Error(U"Cannot rename " + fromTo + U": path busy");
+				break;
+			case EDQUOT:
+				main->Error(U"Cannot rename " + fromTo + U": user's quota of disk blocks has been exhausted");
+				break;
+			case EFAULT:
+				main->Error(U"Cannot rename " + fromTo + U": path not in addressable space");
+				break;
+			case EINVAL:
+				main->Error(U"Cannot rename " + fromTo + U": you attempted to make a subdirectory from itself");
+				break;
+			case EISDIR:
+				main->Error(U"Cannot rename " + fromTo + U": not a directory");
+				break;
+			case ELOOP:
+				main->Error(U"Cannot rename " + fromTo + U": to many symlink");
+				break;
+			case EMLINK:
+				main->Error(U"Cannot rename " + fromTo + U": the previous path has already too many links");
+				break;
+			case ENAMETOOLONG:
+				main->Error(U"Cannot rename " + fromTo + U": name is too long");
+				break;
+			case ENOENT:
+				main->Error(U"Cannot rename " + fromTo + U": path does not exists");
+				break;
+			case ENOMEM:
+				main->Error(U"Cannot rename " + fromTo + U": not enough kernel memory available");
+				break;
+			case ENOSPC:
+				main->Error(U"Cannot rename " + fromTo + U": the device has no room for a new directory");
+				break;
+			case ENOTDIR:
+				main->Error(U"Cannot rename " + fromTo + U": a component of the new is not a directory");
+				break;
+			case ENOTEMPTY:
+			case EEXIST:
+				main->Error(U"Cannot rename " + fromTo + U": the path is a non empty directory");
+				break;
+			case EROFS:
+				main->Error(U"Cannot rename " + fromTo + U": filesystem is read-only");
+				break;
+			case EXDEV:
+				main->Error(U"Cannot rename " + fromTo + U": the new path is not on the same directory as the original file");
+				break;
+			default:
+				main->Error(U"Cannot rename " + fromTo);
+				break;
+		}
+	}
 }
 
 std::string GetWd(const std::string& path)

@@ -6,8 +6,10 @@
 namespace Sort
 {
 // {{{ Functions
-static bool Basename(const File& l, const File& r, const Settings& s)
+static bool Basename(const std::pair<const File*, FileMatch> fl, const std::pair<const File*, FileMatch> fr, const Settings& s)
 {
+	const File& l = *fl.first;
+	const File& r = *fr.first;
 	if (s.DirFist)
 	{
 		if ((l.mode & Mode::DIR || l.lnk.mode & Mode::DIR) && !(r.mode & Mode::DIR || r.lnk.mode & Mode::DIR))

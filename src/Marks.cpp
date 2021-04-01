@@ -5,7 +5,7 @@ std::map<std::string, Marks::Marked>* Shared::marked = nullptr;
 
 std::pair<TBStyle, TBStyle> Marks::DrawFn(std::size_t i, Vec2i pos, int w, bool hovered, Char trailing)
 {
-	// Some optimization, because the DrawFn are called in chronological order...
+	// Some optimization, because the DrawFn are called in order...
 	// This makes getting the i-th element O(1) (except for the first)
 	if (i != m_last_i+1)
 	{

@@ -4,6 +4,7 @@
 #include "Sort.hpp"
 #include "TermboxWidgets/Widgets.hpp"
 #include <fstream>
+#include <regex>
 
 #define LOG(__msg)                                  \
 {                                                   \
@@ -111,6 +112,9 @@ namespace Settings
 		constexpr Char unknown_hostname[] = U"???";
 		constexpr Char unknown_username[] = U"???";
 
+		// * Error
+		constexpr char error_rename_from_to[] = "'{}' -> '{}'";
+
 	}
 
 	namespace Keyboard
@@ -197,6 +201,14 @@ namespace Settings
 			constexpr TBStyle error{0xF05040, background.s.bg, TextStyle::Bold};
 		}
 
+		namespace Filter
+		{
+			const TBString filter_prompt_prefix(U"filter: ", {0xF0A000, main_window_background.s.bg, TextStyle::Bold});
+			constexpr TBChar filter_prompt_bg(U' ', 0xFFFFFF, main_window_background.s.bg, TextStyle::None);
+
+			constexpr TBStyle filter_match{0x000000, 0xFA4A20, TextStyle::Underline}; // FG is ignored
+		}
+
 		namespace Menu
 		{
 			constexpr TBStyle background{0xFFFFFF, 0x202020, TextStyle::None};
@@ -226,8 +238,8 @@ namespace Settings
 			static const std::array<TBString, MarkType::size-1> mark_prefix = Util::make_array // Background will be ignored
 			(
 				TBString{U"s", {0x707070, main_window_background.s.bg, TextStyle::Bold}}, // SELECTED
-				TBString{U"t", {0xC04040, main_window_background.s.bg, TextStyle::None}}, // TAGGED
-				TBString{U"f", {0xF0D040, main_window_background.s.bg, TextStyle::None}} // FAV
+				TBString{U"t", {0xC04040, main_window_background.s.bg, TextStyle::Bold}}, // TAGGED
+				TBString{U"f", {0xF0D040, main_window_background.s.bg, TextStyle::Bold}} // FAV
 			);
 
 			static const std::array<TBStyle, MarkType::size-1> mark_numbers = Util::make_array // Background will be ignored
@@ -313,8 +325,16 @@ namespace Settings
 			constexpr Char menu[] = U"c";
 			constexpr Char directory[] = U"c d";
 			constexpr Char name[] = U"c w";
-			constexpr Char name_empty[] = U"c W";
+			constexpr Char name_empty[] = U"c S-W";
 		}
+
+		constexpr Char filter[] = U"S-F";
+	}
+
+	namespace Filter
+	{
+		constexpr auto regex_mode = std::regex_constants::ECMAScript | std::regex_constants::icase;
+		constexpr bool use_parallel = true; // Filter in parallel
 	}
 }
 

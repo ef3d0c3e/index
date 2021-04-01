@@ -33,6 +33,13 @@ public:
 	const TBChar& GetBackground() const;
 
 	void SetCompletion(const std::vector<String>& completion);
+
+	MAKE_CENUM_Q(TypeT, std::uint8_t,
+		DELETE, 0,
+		CHARACTER, 1,
+	);
+	EventListener<TypeT, Char> OnType;
+	// TODO...
 };
 
 #endif // INDEX_PROMPT_HPP
