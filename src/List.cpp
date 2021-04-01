@@ -285,6 +285,7 @@ void List::UpdateFiles()
 				break;
 		}
 	}
+	m_dir->Filter();
 	m_dir->Sort();
 	SetEntries(m_dir->Size());
 }
