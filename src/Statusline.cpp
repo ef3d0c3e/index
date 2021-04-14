@@ -28,9 +28,9 @@ void Statusline::Draw()
 	if (x >= w)
 		return;
 
-	if (m_main->GetDir()->Size() != 0) [[likely]]
+	if (m_main->GetList()->GetPos() < m_main->GetList()->GetEntries()) [[likely]]
 	{
-		const File& f = (*m_main->GetDir())[m_main->GetList()->GetPos()];
+		const File& f = m_main->GetDir()->Get(m_main->GetList()->GetPos()).first;
 
 		// Filemode
 		{

@@ -198,12 +198,12 @@ std::pair<bool, Error> Directory::GetFiles()
 
 const File& Directory::operator[](std::size_t i) const
 {
-	return *(m_files[i].first);
+	return m_oFiles[i];
 }
 
 File& Directory::operator[](std::size_t i)
 {
-	return *(m_files[i].first);
+	return m_oFiles[i];
 }
 
 const std::pair<const File&, const FileMatch&> Directory::Get(std::size_t i) const
@@ -217,6 +217,11 @@ std::pair<File&, FileMatch&>Directory::Get(std::size_t i)
 }
 
 const std::size_t Directory::Size() const
+{
+	return m_oFiles.size();
+}
+
+const std::size_t Directory::SizeD() const
 {
 	return m_files.size();
 }
@@ -316,6 +321,23 @@ std::string Directory::GetFolderName() const
 }
 
 std::size_t Directory::Find(const String& name, Mode mode, std::size_t beg) const
+{
+	for (std::size_t i = beg; i < m_oFiles.size(); ++i)
+	{
+		const File& f = m_oFiles[i];
+
+		if (f.mode != mode)
+			continue;
+		if (f.name != name)
+			continue;
+
+		return i;
+	}
+
+	return static_cast<std::size_t>(-1);
+}
+
+std::size_t Directory::FindD(const String& name, Mode mode, std::size_t beg) const
 {
 	for (std::size_t i = beg; i < m_files.size(); ++i)
 	{

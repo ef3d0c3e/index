@@ -385,12 +385,16 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 		m_prompt->OnStopShowing.AddEvent([this](bool v){
 			if (!v)
 				return;
+			const String name = m_dir->GetDir()->Get(m_dir->GetPos()).first.name;
 			auto filter = m_dir->GetDir()->GetFilter();
 			filter.Match = m_prompt->GetText();
 			m_dir->GetDir()->SetFilter(filter);
-			m_dir->GetDir()->Filter();
-			m_dir->GetDir()->Sort();
-			m_dir->SetEntries(m_dir->GetDir()->Size());
+			m_dir->UpdateFilter();
+			m_parent->GetDir()->SetFilter(filter);
+			m_parent->UpdateFilter();
+
+			m_dir->ActionSetPosition(GetFilePosition(name));
+
 			SetWidgetExpired(m_dirId, true);
 		}, EventWhen::AFTER_ONCE);
 	});
@@ -400,7 +404,7 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 	m_marks->SetMarks(m_dir->GetDir());
 	Resize(Termbox::GetDim());
 	// Try to find position of directory in the parent List
-	const auto pos = m_parent->GetDir()->Find(
+	const auto pos = m_parent->GetDir()->FindD(
 		Util::StringConvert<Char>(m_dir->GetDir()->GetFolderName()),
 		Mode::DIR);
 	if (pos != static_cast<std::size_t>(-1))
@@ -475,6 +479,14 @@ void MainWindow::UpdateFiles()
 	m_parent->UpdateFiles();
 }
 
+std::size_t MainWindow::GetFilePosition(const String& name)
+{
+	for (std::size_t i = 0; i < m_dir->GetEntries(); ++i)
+		if (m_dir->GetDir()->Get(i).first.name == name)
+			return i;
+	return 0;
+}
+
 void MainWindow::OnChangeDir()
 {
 	m_marks->SetMarks(m_dir->GetDir());
@@ -501,8 +513,9 @@ void MainWindow::Forward(const String& folder)
 	m_parent->ActionSetPosition(m_dir->GetPos());
 
 	m_dir->SetDir(new Directory(m_dir->GetDir()->GetPath() + "/" + Util::StringConvert<char>(folder)));
+	m_dir->GetDir()->SetFilter(m_parent->GetDir()->GetFilter());
 	m_dir->UpdateFiles();
-	m_dir->ActionSetPosition(0);
+	m_parent->UpdateFiles();
 
 	OnChangeDir();
 }
@@ -512,15 +525,19 @@ void MainWindow::Back()
 	// Marks
 	m_marks->AddMarks(m_dir->GetDir());
 
+	const auto filter = m_dir->GetDir()->GetFilter(); // copy
 	delete m_dir->GetDir();
 	m_dir->SetDir(m_parent->GetDir());
 	m_dir->ActionSetPosition(m_parent->GetPos());
+	m_dir->GetDir()->SetFilter(filter);
+	m_dir->UpdateFilter();
 
 	m_parent->SetDir(new Directory(m_parent->GetDir()->GetPath() + "/.."));
+	m_parent->GetDir()->SetFilter(m_dir->GetDir()->GetFilter());
 	m_parent->UpdateFiles();
 	const String name = Util::StringConvert<Char>(m_dir->GetDir()->GetFolderName());
 	
-	const auto pos = m_parent->GetDir()->Find(
+	const auto pos = m_parent->GetDir()->FindD(
 		Util::StringConvert<Char>(m_dir->GetDir()->GetFolderName()),
 		Mode::DIR);
 	if (pos != static_cast<std::size_t>(-1))
@@ -539,6 +556,11 @@ const Directory* MainWindow::GetDir() const
 const List* MainWindow::GetList() const
 {
 	return m_dir;
+}
+
+const List* MainWindow::GetParentList() const
+{
+	return m_parent;
 }
 
 void MainWindow::Error(const String& msg)

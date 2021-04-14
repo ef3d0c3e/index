@@ -22,8 +22,15 @@ public:
 	List(MainWindow* main, const std::string& path, bool input);
 	~List();
 
-	void SetSettings(const Directory::DirectorySettings& settings);
+	////////////////////////////////////////////////
+	/// \brief Re-read from filesystem, will perform filtering
+	////////////////////////////////////////////////
 	void UpdateFiles();
+	////////////////////////////////////////////////
+	/// \brief Run the filter, sort and update the number of entries
+	////////////////////////////////////////////////
+	const std::size_t Size() const;
+	void UpdateFilter();
 
 	void SetShowHidden(bool v);
 	bool GetShowHidden() const;

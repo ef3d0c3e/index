@@ -158,11 +158,10 @@ void List::ActionLeft()
 
 void List::ActionRight()
 {
-	if (m_dir->Size() == 0)
+	if (GetEntries() == 0)
 		return;
 
-	const File& f = (*m_dir)[GetPos()];
-	
+	const File& f = m_dir->Get(GetPos()).first;
 	
 	if (f.mode == Mode::DIR || f.lnk.mode == Mode::DIR)
 	{
@@ -238,11 +237,6 @@ List::~List()
 	delete m_dir;
 }
 
-void List::SetSettings(const Directory::DirectorySettings& settings)
-{
-	m_dir->SetSettings(settings);
-}
-
 void List::UpdateFiles()
 {
 	auto [error, flag] = m_dir->GetFiles();
@@ -285,9 +279,16 @@ void List::UpdateFiles()
 				break;
 		}
 	}
+
+	UpdateFilter();
+}
+
+void List::UpdateFilter()
+{
 	m_dir->Filter();
 	m_dir->Sort();
-	SetEntries(m_dir->Size());
+	SetEntries(m_dir->SizeD());
+	ActionSetPosition(0);
 }
 
 void List::SetShowHidden(bool v)
@@ -310,5 +311,5 @@ Directory* List::GetDir()
 void List::SetDir(Directory* dir)
 {
 	m_dir = dir;
-	SetEntries(m_dir->Size());
+	SetEntries(m_dir->SizeD());
 }

@@ -156,6 +156,13 @@ public:
 	////////////////////////////////////////////////
 	const std::size_t Size() const;
 
+
+	////////////////////////////////////////////////
+	/// \brief Get the number of files in the directory to be display
+	/// \returns The number of files to be displayed
+	////////////////////////////////////////////////
+	const std::size_t SizeD() const;
+
 	////////////////////////////////////////////////
 	/// \brief Filter oFiles and store the passing files in files
 	////////////////////////////////////////////////
@@ -207,6 +214,12 @@ public:
 	/// \returns The id of the first element that matched (else -1)
 	////////////////////////////////////////////////
 	std::size_t Find(const String& name, Mode mode, std::size_t beg = 0) const;
+
+	////////////////////////////////////////////////
+	/// \brief Get the first element matching the query in the display list
+	/// \returns The id of the first element that matched (else -1)
+	////////////////////////////////////////////////
+	std::size_t FindD(const String& name, Mode mode, std::size_t beg = 0) const;
 
 	////////////////////////////////////////////////
 	/// \brief Renames a path

@@ -62,6 +62,13 @@ class MainWindow : public Window
 	bool m_parentEnabled;
 
 	void OnChangeDir();
+
+	////////////////////////////////////////////////
+	/// \brief Tries to get a file's position
+	/// \param name The name of the file to search for
+	/// \returns The position of the file if it has been found, 0 otherwise
+	////////////////////////////////////////////////
+	std::size_t GetFilePosition(const String& name);
 public:
 	MainWindow(const std::string& path, std::size_t tabId);
 	~MainWindow();
@@ -76,6 +83,7 @@ public:
 
 	const Directory* GetDir() const;
 	const List* GetList() const;
+	const List* GetParentList() const;
 
 	void Error(const String& msg);
 	void CD(const std::string& path);

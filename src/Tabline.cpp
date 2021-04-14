@@ -87,9 +87,9 @@ void Tabline::Draw()
 	}
 
 	// Selected entry
-	if (m_main->GetDir()->Size() != 0)
+	if (m_main->GetList()->GetPos() < m_main->GetList()->GetEntries()) [[likely]]
 	{
-		x += Draw::TextLine((*m_main->GetDir())[m_main->GetList()->GetPos()].name, Settings::Style::Tabline::selected, Vec2i(x, y), w-x,
+		x += Draw::TextLine((*m_main->GetDir()).Get(m_main->GetList()->GetPos()).first.name, Settings::Style::Tabline::selected, Vec2i(x, y), w-x,
 				{Settings::Layout::trailing_character, Settings::Style::Tabline::selected}, 0).first;
 		if (x >= w)
 			return;
