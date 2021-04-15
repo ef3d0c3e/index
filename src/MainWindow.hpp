@@ -76,6 +76,7 @@ public:
 	virtual void Resize(Vec2i dim);
 
 	void UpdateFiles();
+	void UpdateFilters();
 
 	// Actions
 	void Forward(const String& folder);

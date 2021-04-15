@@ -284,12 +284,23 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 	m_showMenuId = AddWidget(m_showMenu);
 	// * Keybindings
 	m_dir->AddKeyboardInput(Settings::Keys::Show::hidden, [this]() {
+		//TODO: Store the marks?
+		const String filename = m_dir->GetDir()->Get(m_dir->GetPos()).first.name;
 		const bool v = !m_dir->GetShowHidden();
+
+		// Set the new filter
 		m_dir->SetShowHidden(v);
 		m_parent->SetShowHidden(v);
-		UpdateFiles();
+
+		// Update the list
+		m_parent->UpdateFilter();
+		m_dir->UpdateFilter();
+
+		// Reload the marks
 		m_marks->SetMarks(m_dir->GetDir());
-		m_dir->ActionSetPosition(0);
+
+		// ttry to get the position
+		m_dir->ActionSetPosition(GetFilePosition(filename));
 
 		// Update
 		m_showMenu->GetEntries()[1] = (v)
@@ -390,8 +401,6 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 			filter.Match = m_prompt->GetText();
 			m_dir->GetDir()->SetFilter(filter);
 			m_dir->UpdateFilter();
-			m_parent->GetDir()->SetFilter(filter);
-			m_parent->UpdateFilter();
 
 			m_dir->ActionSetPosition(GetFilePosition(name));
 
@@ -479,6 +488,12 @@ void MainWindow::UpdateFiles()
 	m_parent->UpdateFiles();
 }
 
+void MainWindow::UpdateFilters()
+{
+	m_dir->UpdateFilter();
+	m_parent->UpdateFilter();
+}
+
 std::size_t MainWindow::GetFilePosition(const String& name)
 {
 	for (std::size_t i = 0; i < m_dir->GetEntries(); ++i)
@@ -489,8 +504,10 @@ std::size_t MainWindow::GetFilePosition(const String& name)
 
 void MainWindow::OnChangeDir()
 {
+	// Reload the marks
 	m_marks->SetMarks(m_dir->GetDir());
 
+	// If we're in '/', do not display the parent list
 	if (m_dir->GetDir()->GetPath() == "/")
 	{
 		m_parent->SetVisible(false);
@@ -508,14 +525,24 @@ void MainWindow::Forward(const String& folder)
 	// Marks
 	m_marks->AddMarks(m_dir->GetDir());
 
+	// Parent = Dir
 	delete m_parent->GetDir();
 	m_parent->SetDir(m_dir->GetDir());
 	m_parent->ActionSetPosition(m_dir->GetPos());
 
+	// Dir = new ...
 	m_dir->SetDir(new Directory(m_dir->GetDir()->GetPath() + "/" + Util::StringConvert<char>(folder)));
 	m_dir->GetDir()->SetFilter(m_parent->GetDir()->GetFilter());
+
+	// Remove match filter for parent
+	auto filter = m_parent->GetDir()->GetFilter();
+	filter.Match = U"";
+	m_parent->GetDir()->SetFilter(filter);
+
+	// Update the listing & sort it
 	m_dir->UpdateFiles();
 	m_parent->UpdateFiles();
+
 
 	OnChangeDir();
 }
@@ -533,7 +560,6 @@ void MainWindow::Back()
 	m_dir->UpdateFilter();
 
 	m_parent->SetDir(new Directory(m_parent->GetDir()->GetPath() + "/.."));
-	m_parent->GetDir()->SetFilter(m_dir->GetDir()->GetFilter());
 	m_parent->UpdateFiles();
 	const String name = Util::StringConvert<Char>(m_dir->GetDir()->GetFolderName());
 	

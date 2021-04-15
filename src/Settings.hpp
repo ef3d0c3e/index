@@ -334,7 +334,6 @@ namespace Settings
 	namespace Filter
 	{
 		constexpr auto regex_mode = std::regex_constants::ECMAScript | std::regex_constants::icase;
-		constexpr bool use_parallel = true; // Filter in parallel
 	}
 }
 

@@ -15,6 +15,6 @@ public:
 	std::size_t GetMainWindowId();
 };
 
-extern std::vector<Tab> Tabs;
+extern std::deque<Tab> Tabs;
 
 #endif // INDEX_TAB_HPP

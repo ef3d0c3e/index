@@ -257,28 +257,24 @@ void Directory::Filter()
 	{
 		const std::wregex re(Util::StringConvert<wchar_t>(m_filter.Match), Settings::Filter::regex_mode);
 
-#pragma omp parallel if(Settings::Filter::use_parallel) shared(m_files)
+		for (std::size_t i = 0; i < m_oFiles.size(); ++i)
 		{
-			std::size_t i;
-#pragma omp for schedule(dynamic) private(i)
-			for (i = 0; i < m_oFiles.size(); ++i)
+			if (m_oFiles[i].name.size() == 0 || (!m_filter.HiddenFiles && m_oFiles[i].name[0] == U'.'))
+				continue;
+
+			const auto s = Util::StringConvert<wchar_t>(m_oFiles[i].name);
+			if(std::wsmatch m; std::regex_search(s, m, re))
 			{
-				if (m_oFiles[i].name.size() == 0 || (!m_filter.HiddenFiles && m_oFiles[i].name[0] == U'.'))
-					continue;
-
-				const auto s = Util::StringConvert<wchar_t>(m_oFiles[i].name);
-				if(std::wsmatch m; std::regex_search(s, m, re))
+				FileMatch match;
+				for (std::size_t j = 0; j < m.size(); ++j)
 				{
-					FileMatch match;
-					for (std::size_t j = 0; j < m.size(); ++j)
-					{
-						match.matches.push_back({FileMatch::FILTER, m.position(j), m.length(j)});
-					}
-
-					m_files.push_back({&m_oFiles[i], match});
+					match.matches.push_back({FileMatch::FILTER, m.position(j), m.length(j)});
 				}
+
+				m_files.push_back({&m_oFiles[i], match});
 			}
 		}
+		
 		return;
 	}
 	catch (std::regex_error& e)
@@ -286,10 +282,8 @@ void Directory::Filter()
 
 noRegex:
 	// If regex is invalid, we use the default list
-#pragma omp parallel if(Settings::Filter::use_parallel) shared(m_files)
 	{
 		std::size_t i;
-#pragma omp for schedule(dynamic) private(i)
 		for (i = 0; i < m_oFiles.size(); ++i)
 		{
 			if (m_oFiles[i].name.size() == 0 || (!m_filter.HiddenFiles && m_oFiles[i].name[0] == U'.'))

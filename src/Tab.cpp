@@ -1,6 +1,6 @@
 #include "Tab.hpp"
 
-std::vector<Tab> Tabs;
+std::deque<Tab> Tabs;
 
 Tab::Tab()
 {
