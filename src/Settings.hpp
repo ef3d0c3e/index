@@ -335,6 +335,11 @@ namespace Settings
 	{
 		constexpr auto regex_mode = std::regex_constants::ECMAScript | std::regex_constants::icase;
 	}
+
+	namespace Cache
+	{
+		constexpr std::size_t cache_size = 1<<24; // 16 MB
+	}
 }
 
 constexpr auto SortFns = Util::make_array

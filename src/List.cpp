@@ -165,7 +165,9 @@ void List::ActionRight()
 	
 	if (f.mode == Mode::DIR || f.lnk.mode == Mode::DIR)
 	{
+		OnChangePosition.Notify<EventWhen::BEFORE>();
 		m_main->Forward(f.name);
+		OnChangePosition.Notify<EventWhen::AFTER>();
 	}
 	else
 	{

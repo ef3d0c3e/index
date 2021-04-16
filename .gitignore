@@ -2,3 +2,5 @@
 compile_commands.json
 build
 src/TermboxWidgets
+doc/html
+doc/latex

@@ -1,7 +1,6 @@
 #ifndef INDEX_FILESYSTEM_HPP
 #define INDEX_FILESYSTEM_HPP
 
-#include "TermboxWidgets/Util.hpp"
 #include "FileType.hpp"
 class MainWindow;
 
@@ -83,6 +82,10 @@ struct File
 	MarkType mark;
 };
 
+////////////////////////////////////////////////
+/// \brief Represents a match between a file and a filter
+/// Currently there are only two possible match type: FILTER and FIND
+////////////////////////////////////////////////
 struct FileMatch
 {
 	MAKE_CENUMV_Q(MatchType, std::uint8_t,
@@ -105,7 +108,7 @@ class Directory
 	std::string m_pathResolvedUnscaped; // Resolved
 
 	std::vector <File> m_oFiles; // All the files (unfiltered)
-	std::vector<std::pair<File*, FileMatch>> m_files;
+	std::vector<std::pair<File*, FileMatch>> m_files; // The filtered list
 
 public:
 	struct DirectorySettings
@@ -124,6 +127,11 @@ private:
 	DirectoryFilter m_filter;
 public:
 
+	////////////////////////////////////////////////
+	/// \brief Constructor, constructs a directory given its path
+	/// \param path The directory's path
+	/// Performs some basic resolving
+	////////////////////////////////////////////////
 	Directory(const std::string& path);
 	~Directory();
 
@@ -230,6 +238,12 @@ public:
 	void Rename(MainWindow* main, const std::string& oldName, const std::string& newName);
 };
 
+////////////////////////////////////////////////
+/// \brief Gets the working directory
+/// \param path The directory's path
+/// FIXME: This calls chdir(path) and returns get_current_dir_name
+/// Doing this on a directory without read permission will crash
+////////////////////////////////////////////////
 std::string GetWd(const std::string& path);
 
 #endif // INDEX_FILESYSTEM_HPP

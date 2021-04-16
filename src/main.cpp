@@ -1,6 +1,8 @@
 #include "Settings.hpp"
 #include "Tab.hpp"
 
+#include "DirectoryCache.hpp"
+
 int main(int argc, char* argv[])
 {
 	std::setlocale(LC_ALL, Settings::locale);
