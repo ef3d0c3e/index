@@ -2,9 +2,9 @@
 #include "FileSystem.hpp"
 
 MAKE_CENUM_Q(GeneralID, FtID,
-		UNKNOWN, 0,
-		DIRECTORY, 1,
-		FILE, 2,
+	UNKNOWN, 0,
+	DIRECTORY, 1,
+	FILE, 2,
 );
 
 FtID FileType::GetFtID(const File& f, const std::string& path)

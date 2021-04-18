@@ -3,6 +3,8 @@
 
 #include "DirectoryCache.hpp"
 
+DirectoryCache gDirectoryCache;
+
 int main(int argc, char* argv[])
 {
 	std::setlocale(LC_ALL, Settings::locale);

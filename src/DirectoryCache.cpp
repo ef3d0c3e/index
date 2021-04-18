@@ -1,67 +1,85 @@
 #include "DirectoryCache.hpp"
+#include "Settings.hpp"
 
-std::vector<std::string> DirectoryCache::GetDirs(const std::string& path)
+DirectoryCache::Cached* DirectoryCache::Find(const std::string& dir)
 {
-	std::vector<std::string> dirs;
-	dirs.reserve(8); // Some very rough estimation
+	auto it = m_cache.find(dir);
+	if (it == m_cache.end())
+		return nullptr;
 
-	std::size_t lastpos = 1; // because (path[0] is always '/')
-	for (std::size_t i = 1 ; i < path.size(); ++i)
-	{
-		if (path[i] == '/')
-		{
-			dirs.push_back( std::move(path.substr(lastpos, i-lastpos)) );
-
-			lastpos = i+1;
-		}
-	}
-	auto last = path.substr(lastpos);
-	if (!last.empty())
-		dirs.push_back(std::move(last));
-
-	return dirs;
+	return &it->second;
 }
 
-Node* DirectoryCache::Find(const std::vector<std::string>& dirs)
+void DirectoryCache::Optimize()
 {
-	Node* node = head;
-	for (const auto& dir : dirs)
-	{
-		const auto it = head->children.find(dir);
-		if (it == head->children.end())
-			return nullptr;
+	using P = std::pair<const std::string*, Cached*>;
+	std::vector<P> sorted(m_cache.size());
 
-		node = it->second;
+	for (auto& cached : m_cache)
+	{
+		if (cached.second.refCount == 0)
+			sorted.push_back(std::make_pair(&cached.first, &cached.second));
 	}
 
-	return node;
+	if (sorted.size() < Settings::Cache::cache_num)
+		return;
+
+	std::sort(sorted.begin(), sorted.end(), [](const P& l, const P& r) { return l.second->updated < r.second->updated; });
+
+	for (std::size_t i = 0; i < sorted.size() - Settings::Cache::cache_num; ++i)
+	{
+		delete sorted[i].second->dir;
+		m_cache.erase(*sorted[i].first);
+	}
 }
+
+DirectoryCache::DirectoryCache()
+{
+	
+}
+
+DirectoryCache::~DirectoryCache()
+{
+	for (auto& cached : m_cache)
+		delete cached.second.dir;
+}
+
 
 Directory* DirectoryCache::GetDirectory(const std::string& path)
 {
-	const auto dirs = GetDirs(dir);
-	const Node* d = Find(dirs);
-	if (d == nullptr || d->dir == nullptr) // Not cached
+	const std::string resolved = GetUsablePath(path);
+
+	Cached* cached = Find(resolved);
+	if (cached == nullptr) // Not cached
 	{
-		
-		auto Directory = new Directory();
+		auto dir = new Directory(resolved);
+		m_cache.insert(std::make_pair(dir->GetPath(), DirectoryCache::Cached{
+			.dir = dir,
+			.updated = time(NULL),
+			.refCount = 1,
+		}));
+
+		Optimize();
+		return dir;
 	}
 
-	++d->refCount;
-	return d->dir;
+	++cached->refCount;
+	return cached->dir;
 }
 
 void DirectoryCache::DeleteDirectory(Directory* dir)
 {
-	const auto it = m_cache.find(dir->GetPath());
-	if (it == m_cache.end()) // not cached
+	Cached* cached = Find(dir->GetPath());
+	if (cached == nullptr) // not cached (should not happen...)
 	{
 		delete dir;
 		return;
 	}
 
-	if (it->second.refCount == 0)
+	if (cached->refCount == 0)
+	{
+		std::cout << "Dir = " << dir->GetPath() << "|\n";
 		throw "Negative refCount";
-	--it->second.refCount;
+	}
+	--cached->refCount;
 }
-

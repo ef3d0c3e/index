@@ -5,6 +5,7 @@
 #include "TermboxWidgets/Widgets.hpp"
 #include <fstream>
 #include <regex>
+#include <fmt/format.h>
 
 #define LOG(__msg)                                  \
 {                                                   \
@@ -89,6 +90,7 @@ namespace Settings
 			constexpr Char link_arrow[] = U"➜ ";
 			constexpr Char link_invalid_arrow[] = U"➜ ";
 			constexpr Char link_invalid_text[] = U"Could not resolve link";
+			constexpr bool display_mode = true; ///< Displays the current mode in the status line
 		}
 
 		namespace Marks
@@ -106,6 +108,29 @@ namespace Settings
 				.TrailingChar = U'~',
 				.Cycling = true,
 			};
+		}
+
+		namespace Cache
+		{
+			constexpr Widgets::ListSelectSettings settings{
+				.ScrollTriggerUp = 20,
+				.ScrollTriggerDown = 20,
+				.LeftMargin = 1,
+				.NumberSpacing = 1,
+				.RightMargin = 1,
+				.NumberBase = 10,
+				.DrawNumbers = true,
+				.RelativeNumbers = true,
+				.NumberRightAlign = true,
+				.TrailingChar = U'~',
+				.Cycling = true,
+			};
+
+			constexpr std::size_t date_max_size = 32;
+			constexpr char date_format[] = "(%H:%M:%S)";
+			constexpr Char unknown_date[] = U"???";
+
+			constexpr Char ref_count_format[] = U"[{0}]";
 		}
 
 		// * Posix
@@ -162,6 +187,7 @@ namespace Settings
 		namespace Statusline
 		{
 			constexpr TBChar background{U' ', 0xFFFFFF, 0x303030, TextStyle::None};
+
 			constexpr std::array<std::pair<StringView, TBStyle>, 12> filemode = {
 				std::make_pair(U"?", TBStyle{0x90D090, background.s.bg, TextStyle::Bold}), // UNK
 				std::make_pair(U"?", TBStyle{0x90D090, background.s.bg, TextStyle::Bold}), // NONE
@@ -173,6 +199,7 @@ namespace Settings
 				std::make_pair(U"l", TBStyle{0x90D090, background.s.bg, TextStyle::Bold}), // LNK
 				std::make_pair(U"s", TBStyle{0x90D090, background.s.bg, TextStyle::Bold}), // SOCK
 			};
+
 			constexpr std::array<std::pair<StringView, TBStyle>, Permission::size> permissions = {
 				std::make_pair(U"-", TBStyle{0x5E5E5E, background.s.bg, TextStyle::Bold}),
 				// User
@@ -199,6 +226,14 @@ namespace Settings
 			constexpr TBStyle link_invalid{0xFFA0A0, background.s.bg, TextStyle::Italic};
 
 			constexpr TBStyle error{0xF05040, background.s.bg, TextStyle::Bold};
+
+			const static std::array<TBString, 3> modes = {
+				// Regular modes
+				TBString{U"[LIST]", {0xF07040, background.s.bg, TextStyle::Bold}},
+				TBString{U"[MARKS]", {0xF07040, background.s.bg, TextStyle::Bold}},
+				// Debug modes
+				TBString{U"[CACHE]", {0xD080D0, background.s.bg, TextStyle::Bold}},
+			};
 		}
 
 		namespace Filter
@@ -256,6 +291,16 @@ namespace Settings
 			constexpr TBChar change_dir_prompt_bg(U' ', 0xFFFFFF, main_window_background.s.bg, TextStyle::None);
 			const TBString change_name_prompt_prefix(U"rename: ", {0xF0A000, main_window_background.s.bg, TextStyle::Bold});
 			constexpr TBChar change_name_prompt_bg(U' ', 0xFFFFFF, main_window_background.s.bg, TextStyle::None);
+		}
+
+		namespace Cache
+		{
+			constexpr TBChar background{U' ', 0xFFFFFF, COLOR_DEFAULT};
+			constexpr TBStyle path{0x40D0F0, background.s.bg, TextStyle::Bold};
+			constexpr TBStyle path_hovered{background.s.bg, 0x40D0F0, TextStyle::Bold};
+
+			constexpr TBStyle ref_count{0x904040, background.s.bg, TextStyle::Bold}; // Background will be ignored
+			constexpr TBStyle update{0x404090, background.s.bg, TextStyle::Bold}; // Background will be ignored
 		}
 	}
 
@@ -328,7 +373,12 @@ namespace Settings
 			constexpr Char name_empty[] = U"c S-W";
 		}
 
-		constexpr Char filter[] = U"S-F";
+		namespace Cache
+		{
+			constexpr Char cache[] = U"d c";
+		}
+
+		constexpr Char filter[] = U"f";
 	}
 
 	namespace Filter
@@ -338,7 +388,7 @@ namespace Settings
 
 	namespace Cache
 	{
-		constexpr std::size_t cache_size = 1<<24; // 16 MB
+		constexpr std::size_t cache_num = 1<<8; ///< Maximum number of (unused) cached directories at once
 	}
 }
 

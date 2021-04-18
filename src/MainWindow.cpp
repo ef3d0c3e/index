@@ -6,9 +6,12 @@
 #include "Menu.hpp"
 #include "Marks.hpp"
 #include "Prompt.hpp"
+#include "DirectoryCache.hpp"
+#include "UI/CacheExplorer.hpp"
 
 MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 	Window::Window({U"", Settings::Style::default_text_style}),
+	m_currentMode(CurrentMode::NORMAL),
 	m_tab(tabId),
 	m_sortFn(0),
 	// Settings
@@ -93,6 +96,9 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 		m_marks->AddMarks(m_dir->GetDir());
 
 		MainWindow* win = Tabs[(m_tab-1) % Tabs.size()].GetMainWindow();
+
+		gDirectoryCache.DeleteDirectory(m_dir->GetDir());
+		gDirectoryCache.DeleteDirectory(m_parent->GetDir());
 
 		Termbox::GetTermbox().Termbox::RemoveWidget(Tabs[m_tab].GetMainWindowId());
 		delete Tabs[m_tab].GetMainWindow();
@@ -216,11 +222,11 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 		// Updating the repeat
 		SetWidgetExpired(m_tablineId, true);
 	});
-	m_marksMode = false;
 	m_marksId = AddWidget(m_marks);
 
 	// * Keybindings
-	dInput->AddKeyboardInput(Settings::Keys::Marks::marks, [this](){ ToggleMarks(); });
+	dInput->AddKeyboardInput(Settings::Keys::Marks::marks, [this](){ SetMode(m_currentMode == CurrentMode::MARKS ? CurrentMode::NORMAL : CurrentMode::MARKS); });
+	m_marks->AddKeyboardInput(Settings::Keys::Marks::exit, [this]() { SetMode(CurrentMode::NORMAL); });
 	m_dir->AddKeyboardInput(Settings::Keys::Marks::select, [this]()
 	{
 		if (Termbox::GetContext().hasRepeat)
@@ -252,7 +258,6 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 		else
 			m_dir->ActionMarkN(1, MarkType::FAV);
 	});
-	m_marks->AddKeyboardInput(Settings::Keys::Marks::exit, [this]() { ToggleMarks(); });
 	// }}}
 
 	// {{{ Show
@@ -393,20 +398,30 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 		m_prompt->SetText(m_dir->GetDir()->GetFilter().Match);
 		show_prompt();
 
-		m_prompt->OnStopShowing.AddEvent([this](bool v){
+		m_prompt->OnStopShowing.AddEvent([this](bool v)
+		{
 			if (!v)
 				return;
-			const String name = m_dir->GetDir()->Get(m_dir->GetPos()).first.name;
+			const String name = (m_dir->GetEntries() != 0) ? m_dir->GetDir()->Get(m_dir->GetPos()).first.name : U"";
 			auto filter = m_dir->GetDir()->GetFilter();
 			filter.Match = m_prompt->GetText();
 			m_dir->GetDir()->SetFilter(filter);
 			m_dir->UpdateFilter();
 
 			m_dir->ActionSetPosition(GetFilePosition(name));
-
-			SetWidgetExpired(m_dirId, true);
 		}, EventWhen::AFTER_ONCE);
 	});
+	// }}}
+
+	// {{{ Cache
+	// * CacheExplorer
+	m_cacheExplorer = new CacheExplorer(this);
+	m_cacheExplorer->SetVisible(false);
+	m_cacheExplorer->SetActive(false);
+	m_cacheExplorerId = AddWidget(m_cacheExplorer);
+
+	dInput->AddKeyboardInput(Settings::Keys::Cache::cache, [this](){ SetMode(CurrentMode::CACHE_EXPLORER); });
+	m_cacheExplorer->AddKeyboardInput(Settings::Keys::Cache::cache, [this](){ SetMode(CurrentMode::NORMAL); });
 	// }}}
 
 	UpdateFiles();
@@ -477,6 +492,10 @@ void MainWindow::Resize(Vec2i dim)
 	m_marks->SetPosition(Vec2i(0, 1));
 	m_marks->SetSize(Vec2i(w, h-2));
 
+	// CacheExplorer
+	m_cacheExplorer->SetPosition(Vec2i(0, 1));
+	m_cacheExplorer->SetSize(Vec2i(w, h-2));
+
 	// Prompt
 	m_prompt->SetPosition(Vec2i(0, h-2));
 	m_prompt->SetSize(Vec2i(w, 1));
@@ -526,12 +545,12 @@ void MainWindow::Forward(const String& folder)
 	m_marks->AddMarks(m_dir->GetDir());
 
 	// Parent = Dir
-	delete m_parent->GetDir();
+	gDirectoryCache.DeleteDirectory(m_parent->GetDir());
 	m_parent->SetDir(m_dir->GetDir());
-	m_parent->ActionSetPosition(m_dir->GetPos());
+	const auto parentPos = m_dir->GetPos();
 
 	// Dir = new ...
-	m_dir->SetDir(new Directory(m_dir->GetDir()->GetPath() + "/" + Util::StringConvert<char>(folder)));
+	m_dir->SetDir(gDirectoryCache.GetDirectory(m_dir->GetDir()->GetPath() + "/" + Util::StringConvert<char>(folder)));
 	m_dir->GetDir()->SetFilter(m_parent->GetDir()->GetFilter());
 
 	// Remove match filter for parent
@@ -542,7 +561,7 @@ void MainWindow::Forward(const String& folder)
 	// Update the listing & sort it
 	m_dir->UpdateFiles();
 	m_parent->UpdateFiles();
-
+	m_parent->ActionSetPosition(parentPos);
 
 	OnChangeDir();
 }
@@ -553,13 +572,13 @@ void MainWindow::Back()
 	m_marks->AddMarks(m_dir->GetDir());
 
 	const auto filter = m_dir->GetDir()->GetFilter(); // copy
-	delete m_dir->GetDir();
+	gDirectoryCache.DeleteDirectory(m_dir->GetDir());
 	m_dir->SetDir(m_parent->GetDir());
 	m_dir->ActionSetPosition(m_parent->GetPos());
 	m_dir->GetDir()->SetFilter(filter);
 	m_dir->UpdateFilter();
 
-	m_parent->SetDir(new Directory(m_parent->GetDir()->GetPath() + "/.."));
+	m_parent->SetDir(gDirectoryCache.GetDirectory(m_parent->GetDir()->GetPath() + "/.."));
 	m_parent->UpdateFiles();
 	const String name = Util::StringConvert<Char>(m_dir->GetDir()->GetFolderName());
 	
@@ -599,13 +618,13 @@ void MainWindow::CD(const std::string& path)
 	// Marks
 	m_marks->AddMarks(m_dir->GetDir());
 
-	delete m_dir->GetDir();
-	delete m_parent->GetDir();
+	gDirectoryCache.DeleteDirectory(m_dir->GetDir());
+	gDirectoryCache.DeleteDirectory(m_parent->GetDir());
 
-	m_dir->SetDir(new Directory(path));
+	m_dir->SetDir(gDirectoryCache.GetDirectory(path));
 	m_dir->UpdateFiles();
 
-	m_parent->SetDir(new Directory(m_dir->GetDir()->GetPath() + "/.."));
+	m_parent->SetDir(gDirectoryCache.GetDirectory(m_dir->GetDir()->GetPath() + "/.."));
 	m_parent->UpdateFiles();
 
 	
@@ -615,33 +634,47 @@ void MainWindow::CD(const std::string& path)
 	OnChangeDir();
 }
 
-void MainWindow::ToggleMarks()
+void MainWindow::SetMode(CurrentMode mode)
 {
-	m_marks->AddMarks(m_dir->GetDir());
+	if (mode == m_currentMode)
+		return;
 
-	if (!m_marksMode)
+	m_dir->SetVisible(false);
+	m_dir->SetActive(false);
+	m_parent->SetActive(false);
+	m_marks->SetVisible(false);
+	m_marks->SetActive(false);
+	m_cacheExplorer->SetVisible(false);
+	m_cacheExplorer->SetActive(false);
+
+	// Normal
+	switch (mode)
 	{
-		m_marksMode = true;
-		m_dir->SetVisible(false);
-		m_parent->SetVisible(false);
-		m_dir->SetActive(false);
-
-		m_marks->SetVisible(true);
-		m_marks->SetActive(true);
+		case CurrentMode::NORMAL:
+			m_dir->SetVisible(true);
+			m_dir->SetActive(true);
+			m_parent->SetVisible(m_dir->GetDir()->GetPath() != "/");
+			break;
+		case CurrentMode::MARKS:
+			m_marks->SetVisible(true);
+			m_marks->SetActive(true);
+			m_marks->AddMarks(m_dir->GetDir());
+			break;
+		case CurrentMode::CACHE_EXPLORER:
+			m_cacheExplorer->SetVisible(true);
+			m_cacheExplorer->SetActive(true);
+			break;
 	}
-	else
-	{
-		m_marksMode = false;
-		m_dir->SetVisible(true);
-		m_parent->SetVisible(m_dir->GetDir()->GetPath() != "/");
-		m_dir->SetActive(true);
+	m_currentMode = mode;
 
-		m_marks->SetVisible(false);
-		m_marks->SetActive(false);
-	}
-
+	// Do not process current input any further
 	Termbox::GetContext().stopInput = true;
 	Invalidate();
+}
+
+MainWindow::CurrentMode MainWindow::GetMode() const
+{
+	return m_currentMode;
 }
 
 std::size_t MainWindow::GetTab() const

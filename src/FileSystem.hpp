@@ -246,4 +246,11 @@ public:
 ////////////////////////////////////////////////
 std::string GetWd(const std::string& path);
 
+////////////////////////////////////////////////
+/// \brief Gets a usable path from a path
+/// \param path The path
+/// \returns A readable path
+////////////////////////////////////////////////
+std::string GetUsablePath(std::string path);
+
 #endif // INDEX_FILESYSTEM_HPP

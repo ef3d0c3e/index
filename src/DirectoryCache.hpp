@@ -10,25 +10,34 @@ public:
 	{
 		////////////////////////////////////////////////
 		/// \brief Represents a cached directory
-		/// A node is a directory, which may have a cache entry
-		/// and may contain children. (But must satisfy at least one of the two)
 		////////////////////////////////////////////////
 
 		Directory* dir = nullptr; ///< The cached directory. If nullptr, then The directory referred by this node is not cached...
-		Time cached; ///< The time this node was added to the cache
+		Time updated; ///< The time this node was last updated
 		std::size_t refCount = 0; ///< Number of references to this directory
 	};
 
-	////////////////////////////////////////////////
-	/// \brief Splits the path into directories
-	/// \param path The path
-	/// \returns A vector containing every directory comprising the path
-	/// e.g: ```'/home/me/Downloads' -> {'home', 'me', 'Downloads'}```
-	////////////////////////////////////////////////
-	static std::vector<std::string> GetDirs(const std::string& path);
+	friend class CacheExplorer;
 private:
 	std::map<std::string, Cached> m_cache;
+
+	////////////////////////////////////////////////
+	/// \brief Find a directory in the cache by its name
+	/// \param path The path
+	/// \returns The cached directory or nullptr if not found
+	////////////////////////////////////////////////
+	Cached* Find(const std::string& path);
+
+	////////////////////////////////////////////////
+	/// \brief Tries to reduce the size of the cache
+	/// Will only delete directory with a ```refCount``` of 0
+	/// Will prefer deleting the least recently updated directories
+	////////////////////////////////////////////////
+	void Optimize();
 public:
+	DirectoryCache();
+	~DirectoryCache();
+
 	////////////////////////////////////////////////
 	/// \brief Get a directory from the cache or allocate it
 	/// \param path The path
@@ -43,5 +52,7 @@ public:
 	////////////////////////////////////////////////
 	void DeleteDirectory(Directory* dir);
 };
+
+extern DirectoryCache gDirectoryCache;
 
 #endif // INDEX_DIRECTORYCACHE_HPP

@@ -1,5 +1,6 @@
 #include "List.hpp"
 #include "Actions/Actions.hpp"
+#include "DirectoryCache.hpp"
 #include <algorithm>
 
 std::pair<TBStyle, TBStyle> List::DrawFn(std::size_t i, Vec2i pos, int w, bool hovered, Char trailing) const
@@ -138,7 +139,7 @@ std::pair<TBStyle, TBStyle> List::DrawFn(std::size_t i, Vec2i pos, int w, bool h
 
 void List::MarkFn(std::size_t i, MarkType mark)
 {
-	File& f = (*m_dir)[i];
+	File& f = m_dir->Get(i).first;
 
 	if (f.mark & mark)
 		f.mark &= ~(mark);
@@ -185,7 +186,7 @@ List::List(MainWindow* main, const std::string& path, bool input):
 	m_mainList(input) // If input is true, then this is the main list
 {
 	SetBackground(Settings::Style::List::background);
-	m_dir = new Directory(path);
+	m_dir = gDirectoryCache.GetDirectory(path);
 
 	if (!input)
 		return;
@@ -199,9 +200,12 @@ List::List(MainWindow* main, const std::string& path, bool input):
 		else [[unlikely]]
 			ActionDownN(tb.GetContext().repeat);
 	});
+
 	AddKeyboardInput(Settings::Keys::List::down_page, [this](){ ActionDownN(Settings::Layout::List::page_size); });
+
 	AddMouseInput(Mouse({Vec2i(0, 0), Vec2i(0, 0)}, Mouse::MOUSE_WHEEL_DOWN,
 				[this](const Vec2i&){ ActionDownN(1); }));
+
 	AddKeyboardInput(Settings::Keys::List::up, [this]()
 	{
 		Termbox& tb = Termbox::GetTermbox();
@@ -210,11 +214,14 @@ List::List(MainWindow* main, const std::string& path, bool input):
 		else [[unlikely]]
 			ActionUpN(tb.GetContext().repeat);
 	});
+
 	AddKeyboardInput(Settings::Keys::List::up_page, [this](){ ActionUpN(Settings::Layout::List::page_size); });
+
 	AddMouseInput(Mouse({Vec2i(0, 0), Vec2i(0, 0)}, Mouse::MOUSE_WHEEL_UP,
 				[this](const Vec2i&){ ActionUpN(1); }));
 
 	AddKeyboardInput(Settings::Keys::Go::top,  [this](){ ActionSetPosition(0); });
+
 	AddKeyboardInput(Settings::Keys::Go::bottom,  [this]()
 	{
 		Termbox& tb = Termbox::GetTermbox();
@@ -225,18 +232,19 @@ List::List(MainWindow* main, const std::string& path, bool input):
 	});
 
 	AddKeyboardInput(Settings::Keys::List::left,  [this]() { ActionLeft(); });
+
 	AddKeyboardInput(Settings::Keys::List::right, [this]() { ActionRight(); });
 
 	AddMouseInput({{Vec2i(0, 0), Vec2i(0, 0)}, Mouse::MOUSE_LEFT, [this](const Vec2i& pos){ ActionMouseClick(pos); }});
 
 	// Other
 	AddKeyboardInput(Settings::Keys::Go::home, [this]() { m_main->CD("~"); });
+
 	AddKeyboardInput(Settings::Keys::Go::root, [this]() { m_main->CD("/"); });
 }
 
 List::~List()
 {
-	delete m_dir;
 }
 
 void List::UpdateFiles()

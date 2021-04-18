@@ -9,6 +9,7 @@ class Statusline;
 class Menu;
 class Marks;
 class Prompt;
+class CacheExplorer;
 
 class DummyInput : public Widget
 {
@@ -20,6 +21,13 @@ public:
 
 class MainWindow : public Window
 {
+public:
+	MAKE_CENUM_Q(CurrentMode, std::uint8_t,
+		NORMAL, 0, // Default mode (directory list)
+		MARKS, 1, // Marks mode
+		CACHE_EXPLORER, 2, // Cache explorer mode
+	);
+private:
 	DummyInput* dInput;
 
 	List* m_dir;
@@ -44,6 +52,11 @@ class MainWindow : public Window
 	Marks* m_marks;
 	std::size_t m_marksId;
 	bool m_marksMode;
+
+	CacheExplorer* m_cacheExplorer;
+	std::size_t m_cacheExplorerId;
+
+	CurrentMode m_currentMode;
 
 	Prompt* m_prompt;
 	std::size_t m_promptId;
@@ -88,7 +101,18 @@ public:
 
 	void Error(const String& msg);
 	void CD(const std::string& path);
-	void ToggleMarks();
+
+	////////////////////////////////////////////////
+	/// \brief Sets the current mode
+	/// \param mode The new mode
+	////////////////////////////////////////////////
+	void SetMode(CurrentMode mode);
+
+	////////////////////////////////////////////////
+	/// \brief Gets the current mode
+	/// \returns The current mode
+	////////////////////////////////////////////////
+	CurrentMode GetMode() const;
 
 	std::size_t GetTab() const;
 };

@@ -19,35 +19,7 @@ Permission& operator|=(Permission& l, const Permission& r)
 Directory::Directory(const std::string& path):
 	m_path(path)
 {
-	for (std::size_t i = 0; i < m_path.size(); ++i)
-	{
-		if (m_path[i] == ' ')
-		{
-			m_path.insert(i, 1, '\\');
-			++i;
-		}
-	}
-
-	wordexp_t p;
-	char** w;
-	if (wordexp(m_path.c_str(), &p, 0) != 0)
-		throw Util::Exception("wordexp() failed");
-	w = p.we_wordv;
-	std::string expanded = "";
-	for (std::size_t i = 0; i < p.we_wordc; ++i)
-		expanded += w[i];
-	wordfree(&p);
-
-	/*
-	char* resolved = realpath(expanded.c_str(), NULL);
-	if (resolved == NULL)
-		throw Util::Exception("realpath() failed");
-		*/
-
-	m_pathResolvedUnscaped = GetWd(expanded);
-	std::remove_if(m_pathResolvedUnscaped.begin(), m_pathResolvedUnscaped.end(), [](char c){ return c == '\\'; });
-	
-	//free(resolved);
+	m_pathResolvedUnscaped = GetUsablePath(path);
 }
 
 Directory::~Directory()
@@ -107,7 +79,7 @@ std::pair<bool, Error> Directory::GetFiles()
 							case S_IFIFO:  f.lnk.mode = Mode::FIFO; break;
 							case S_IFLNK:  f.lnk.mode = Mode::LNK; break;
 							case S_IFSOCK: f.lnk.mode = Mode::SOCK; break;
-							default:	   f.lnk.mode = Mode::UNK; break;
+							default:       f.lnk.mode = Mode::UNK; break;
 						}
 					}
 					else
@@ -250,47 +222,43 @@ void Directory::Filter()
 {
 	m_files.clear();
 	m_files.reserve(m_oFiles.size());
-	if (m_filter.Match.empty())
-		goto noRegex;
-
-	try
+	if (!m_filter.Match.empty())
 	{
-		const std::wregex re(Util::StringConvert<wchar_t>(m_filter.Match), Settings::Filter::regex_mode);
-
-		for (std::size_t i = 0; i < m_oFiles.size(); ++i)
+		try
 		{
-			if (m_oFiles[i].name.size() == 0 || (!m_filter.HiddenFiles && m_oFiles[i].name[0] == U'.'))
-				continue;
+			const std::wregex re(Util::StringConvert<wchar_t>(m_filter.Match), Settings::Filter::regex_mode);
 
-			const auto s = Util::StringConvert<wchar_t>(m_oFiles[i].name);
-			if(std::wsmatch m; std::regex_search(s, m, re))
+			for (std::size_t i = 0; i < m_oFiles.size(); ++i)
 			{
-				FileMatch match;
-				for (std::size_t j = 0; j < m.size(); ++j)
+				if (m_oFiles[i].name.size() == 0 || (!m_filter.HiddenFiles && m_oFiles[i].name[0] == U'.'))
+					continue;
+
+				const auto s = Util::StringConvert<wchar_t>(m_oFiles[i].name);
+				if(std::wsmatch m; std::regex_search(s, m, re))
 				{
-					match.matches.push_back({FileMatch::FILTER, m.position(j), m.length(j)});
+					FileMatch match;
+					for (std::size_t j = 0; j < m.size(); ++j)
+					{
+						match.matches.push_back({FileMatch::FILTER, m.position(j), m.length(j)});
+					}
+
+					m_files.push_back({&m_oFiles[i], std::move(match)});
 				}
-
-				m_files.push_back({&m_oFiles[i], match});
 			}
+
+			return;
 		}
-		
-		return;
+		catch (std::regex_error& e)
+		{ }
 	}
-	catch (std::regex_error& e)
-	{ }
 
-noRegex:
 	// If regex is invalid, we use the default list
+	for (std::size_t i = 0; i < m_oFiles.size(); ++i)
 	{
-		std::size_t i;
-		for (i = 0; i < m_oFiles.size(); ++i)
-		{
-			if (m_oFiles[i].name.size() == 0 || (!m_filter.HiddenFiles && m_oFiles[i].name[0] == U'.'))
-				continue;
+		if (m_oFiles[i].name.size() == 0 || (!m_filter.HiddenFiles && m_oFiles[i].name[0] == U'.'))
+			continue;
 
-			m_files.push_back({&m_oFiles[i], FileMatch{}});
-		}
+		m_files.push_back({&m_oFiles[i], FileMatch{}});
 	}
 }
 
@@ -426,4 +394,32 @@ std::string GetWd(const std::string& path)
 	const std::string ret = dir;
 	free(dir);
 	return ret;
+}
+
+std::string GetUsablePath(std::string path)
+{
+
+	for (std::size_t i = 0; i < path.size(); ++i)
+	{
+		if (path[i] == ' ')
+		{
+			path.insert(i, 1, '\\');
+			++i;
+		}
+	}
+
+	wordexp_t p;
+	char** w;
+	if (wordexp(path.c_str(), &p, 0) != 0)
+		throw Util::Exception("wordexp() failed");
+	w = p.we_wordv;
+	std::string expanded = "";
+	for (std::size_t i = 0; i < p.we_wordc; ++i)
+		expanded += w[i];
+	wordfree(&p);
+
+	std::string resolved = GetWd(expanded);
+	std::remove_if(resolved.begin(), resolved.end(), [](char c){ return c == '\\'; });
+
+	return resolved;
 }

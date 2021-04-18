@@ -20,10 +20,11 @@ void Statusline::Draw()
 	auto x = GetPosition()[0];
 	const auto y = GetPosition()[1];
 	const auto w = GetSize()[0]+x;
+	const auto bgWidth = wcwidth(m_bg.ch);
 	if constexpr (Settings::Layout::Statusline::left_margin != 0)
 	{
-		Draw::Horizontal(m_bg, Vec2i(x, y), Settings::Layout::Statusline::left_margin);
-		x += Settings::Layout::Statusline::left_margin;
+		Draw::Horizontal(m_bg, Vec2i(x, y), Settings::Layout::Statusline::left_margin*bgWidth);
+		x += Settings::Layout::Statusline::left_margin*bgWidth;
 	}
 	if (x >= w)
 		return;
@@ -69,7 +70,7 @@ void Statusline::Draw()
 		// Spacing
 		{
 			Draw::Char(m_bg, Vec2i(x, y));
-			x += wcwidth(m_bg.ch);
+			x += bgWidth;
 			if (x >= w)
 				return;
 		}
@@ -90,7 +91,7 @@ void Statusline::Draw()
 		// Spacing
 		{
 			Draw::Char(m_bg, Vec2i(x, y));
-			x += wcwidth(m_bg.ch);
+			x += bgWidth;
 			if (x >= w)
 				return;
 		}
@@ -112,7 +113,7 @@ void Statusline::Draw()
 		// Spacing
 		{
 			Draw::Char(m_bg, Vec2i(x, y));
-			x += wcwidth(m_bg.ch);
+			x += bgWidth;
 			if (x >= w)
 				return;
 		}
@@ -120,7 +121,7 @@ void Statusline::Draw()
 		// Date
 		{
 			char buff[Settings::Layout::Statusline::date_max_size];
-			size_t ret = std::strftime(buff, Settings::Layout::Statusline::date_max_size-1, Settings::Layout::Statusline::date_format, localtime(&f.lastModification));
+			std::size_t ret = std::strftime(buff, Settings::Layout::Statusline::date_max_size-1, Settings::Layout::Statusline::date_format, localtime(&f.lastModification));
 			if (ret != 0)
 				x += Draw::TextLine(Util::StringConvert<Char>(std::string(buff)), Settings::Style::Statusline::date, Vec2i(x, y), w-x,
 						{Settings::Layout::trailing_character, Settings::Style::Statusline::date}, 0).first;
@@ -134,7 +135,7 @@ void Statusline::Draw()
 		// Spacing
 		{
 			Draw::Char(m_bg, Vec2i(x, y));
-			x += wcwidth(m_bg.ch);
+			x += bgWidth;
 			if (x >= w)
 				return;
 		}
@@ -154,7 +155,7 @@ void Statusline::Draw()
 
 				// Spacing
 				Draw::Char(m_bg, Vec2i(x, y));
-				x += wcwidth(m_bg.ch);
+				x += bgWidth;
 
 				// Link
 				if (f.lnk.link.size() != 0)
@@ -168,10 +169,37 @@ void Statusline::Draw()
 			}
 		}
 	}
+
+	// * Right side
+	auto w2 = w;
+	
+	// Margin
+	if constexpr (Settings::Layout::Statusline::right_margin != 0)
+	{
+		Draw::Horizontal(m_bg, Vec2i(w2-Settings::Layout::Statusline::right_margin*bgWidth, y), Settings::Layout::Statusline::right_margin*bgWidth);
+		w2 -= Settings::Layout::Statusline::right_margin*bgWidth;
+	}
+
+	// Mode
+	if constexpr (Settings::Layout::Statusline::display_mode)
+	{
+		const static std::array<int, Settings::Style::Statusline::modes.size()> modesLength = [] // Precomputed table
+		{
+			std::array<int, Settings::Style::Statusline::modes.size()> len;
+			[&]<std::size_t... i>(std::index_sequence<i...>)
+			{
+				((len[i] = Settings::Style::Statusline::modes[i].SizeWide()), ...);
+			}(std::make_index_sequence<Settings::Style::Statusline::modes.size()>{});
+
+			return len;
+		}();
+
+		w2 -= Draw::TextLine(Settings::Style::Statusline::modes[m_main->GetMode()], Vec2i(w2-modesLength[m_main->GetMode()], y), modesLength[m_main->GetMode()], {Settings::Layout::trailing_character, Settings::Style::Statusline::link_invalid}).first;
+	}
 	
 	// Fill
 	{
-		Draw::Horizontal(m_bg, Vec2i(x, y), w-x);
+		Draw::Horizontal(m_bg, Vec2i(x, y), w2-x);
 	}
 }
 
