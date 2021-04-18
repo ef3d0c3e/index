@@ -11,7 +11,7 @@ namespace Actions
 	);
 	struct Opener
 	{
-		std::string_view format;
+		std::string format;
 		MAKE_CENUMV_Q(Flag, std::uint8_t,
 			SetSid, 1<<0, // The opener will be started as a child process and setsid() will be called (i.e it will not block the parent process and will become indemendent from the parent process)
 			Close, 1<<1, // The opener requires index to close (e.g a terminal program like vi or emacs)
@@ -19,7 +19,11 @@ namespace Actions
 		);
 		Flag flag;
 
-		constexpr Opener(std::string_view&& _format, Flag _flag):
+		Opener(const std::string& _format, Flag _flag):
+			format(_format), flag(_flag)
+		{ }
+
+		Opener(std::string&& _format, Flag _flag):
 			format(std::move(_format)), flag(_flag)
 		{ }
 
@@ -39,14 +43,14 @@ namespace Actions
 
 	namespace Openers
 	{
-		constexpr static Opener TextEditor("nvim {file}"sv, Opener::Close);
-		constexpr static Opener ImageViewer("feh {file}"sv, Opener::SetSid);
-		constexpr static Opener AudioPlayer("mpv --no-video {file}"sv, Opener::Close);
-		constexpr static Opener VideoPlayer("mpv {file}"sv, Opener::SetSid);
-		constexpr static Opener PDFViewer("zathura {file}"sv, Opener::SetSid);
-		constexpr static Opener WebBrowser("x-www-browser {file}"sv, Opener::SetSid);
+		const static Opener TextEditor("nvim {file}"s, Opener::Close);
+		const static Opener ImageViewer("feh {file}"s, Opener::SetSid);
+		const static Opener AudioPlayer("mpv --no-video {file}"s, Opener::Close);
+		const static Opener VideoPlayer("mpv {file}"s, Opener::SetSid);
+		const static Opener PDFViewer("zathura {file}"s, Opener::SetSid);
+		const static Opener WebBrowser("x-www-browser {file}"s, Opener::SetSid);
 
-		constexpr static Opener Gimp("gimp {file}"sv, Opener::SetSid);
+		const static Opener Gimp("gimp {file}"s, Opener::SetSid);
 
 		bool isText(const File& f, const std::string& path, const std::string& ext);
 
@@ -102,7 +106,15 @@ namespace Actions
 
 	std::pair<OpenType, const Opener*> GetOpener(const File& f, const std::string& path);
 
-	void Open(const File& f, const std::string& path, const Opener* opener);
+	void Open(const File& f, const std::string& path, const Opener& opener);
+	////////////////////////////////////////////////
+	/// \brief Attempts to open a file
+	/// \param f The file to open
+	/// \param path The path of the file
+	/// \param format The format string for the opener
+	/// \returns false if an error occured, true otherwise
+	////////////////////////////////////////////////
+	bool CustomOpen(const File& f, const std::string& path, const std::string& format);
 }
 
 #endif // INDEX_ACTIONS_OPEN_HPP

@@ -5,7 +5,7 @@
 
 std::pair<TBStyle, TBStyle> List::DrawFn(std::size_t i, Vec2i pos, int w, bool hovered, Char trailing) const
 {
-	const auto& [f, match] = m_dir->Get(i);
+	const auto& [f, match] = Get(i);
 	auto [icon, c, ts] = FileType::CompiledIcons[f.ftId];
 	const TBChar trailChar{trailing, {c.name, Settings::Style::List::background.s.bg, ts}};
 
@@ -46,9 +46,11 @@ std::pair<TBStyle, TBStyle> List::DrawFn(std::size_t i, Vec2i pos, int w, bool h
 	// Icons
 	if constexpr (Settings::Layout::List::icons)
 	{
-		const int p2 = Draw::TextLine(String(icon), style(c.icon), pos+Vec2i(p, 0), Settings::Layout::List::icons_width, trailChar).first;
-		Draw::Horizontal({U' ', style(c.icon)}, pos+Vec2i(p+p2, 0), Settings::Layout::List::icons_width-p2);
-		p += Settings::Layout::List::icons_width;
+		// We use .size instead of SizeWide, because most icons are not considered wide characters by the standard
+		const auto iconWidth = std::max(Settings::Layout::List::icons_min_width, icon.size());
+		const int p2 = Draw::TextLine(String(icon), style(c.icon), pos+Vec2i(p, 0), iconWidth, trailChar).first;
+		Draw::Horizontal({U' ', style(c.icon)}, pos+Vec2i(p+p2, 0), iconWidth-p2);
+		p += iconWidth;
 
 	}
 
@@ -75,7 +77,6 @@ std::pair<TBStyle, TBStyle> List::DrawFn(std::size_t i, Vec2i pos, int w, bool h
 	// Link
 	if constexpr (Settings::Layout::List::display_link)
 	{
-		//TODO
 		if (f.mode == Mode::LNK) [[unlikely]]
 		{
 			// Spacing
@@ -139,7 +140,7 @@ std::pair<TBStyle, TBStyle> List::DrawFn(std::size_t i, Vec2i pos, int w, bool h
 
 void List::MarkFn(std::size_t i, MarkType mark)
 {
-	File& f = m_dir->Get(i).first;
+	File& f = Get(i).first;
 
 	if (f.mark & mark)
 		f.mark &= ~(mark);
@@ -162,7 +163,7 @@ void List::ActionRight()
 	if (GetEntries() == 0)
 		return;
 
-	const File& f = m_dir->Get(GetPos()).first;
+	const File& f = Get(GetPos()).first;
 	
 	if (f.mode == Mode::DIR || f.lnk.mode == Mode::DIR)
 	{
@@ -174,25 +175,25 @@ void List::ActionRight()
 	{
 		const auto [openType, opener] = Actions::GetOpener(f, m_dir->GetPath());
 		if (openType == Actions::OpenType::Executable)
-			Actions::Open(f, m_dir->GetPath(), opener);
+			Actions::Open(f, m_dir->GetPath(), *opener);
 	}
 }
 
 
 using namespace std::placeholders;
 List::List(MainWindow* main, const std::string& path, bool input):
-	ListSelect(std::bind(&List::DrawFn, this, _1, _2, _3, _4, _5), std::bind(&List::MarkFn, this, _1, _2)),
+	ListBase(std::bind(&List::DrawFn, this, _1, _2, _3, _4, _5), std::bind(&List::MarkFn, this, _1, _2)),
 	m_main(main),
 	m_mainList(input) // If input is true, then this is the main list
 {
 	SetBackground(Settings::Style::List::background);
-	m_dir = gDirectoryCache.GetDirectory(path);
+	m_dir = gDirectoryCache.GetDirectory(path).first;
 
 	if (!input)
 		return;
 
 	// Input
-	AddKeyboardInput(Settings::Keys::List::down, [this]()
+	AddKeyboardInput(Settings::Keys::List::down, [this]
 	{
 		Termbox& tb = Termbox::GetTermbox();
 		if (tb.GetContext().repeat == 0) [[likely]]
@@ -201,12 +202,15 @@ List::List(MainWindow* main, const std::string& path, bool input):
 			ActionDownN(tb.GetContext().repeat);
 	});
 
-	AddKeyboardInput(Settings::Keys::List::down_page, [this](){ ActionDownN(Settings::Layout::List::page_size); });
+	AddKeyboardInput(Settings::Keys::List::down_page, [this]
+	{
+		ActionDownN(Settings::Layout::List::page_size);
+	});
 
 	AddMouseInput(Mouse({Vec2i(0, 0), Vec2i(0, 0)}, Mouse::MOUSE_WHEEL_DOWN,
 				[this](const Vec2i&){ ActionDownN(1); }));
 
-	AddKeyboardInput(Settings::Keys::List::up, [this]()
+	AddKeyboardInput(Settings::Keys::List::up, [this]
 	{
 		Termbox& tb = Termbox::GetTermbox();
 		if (tb.GetContext().repeat == 0) [[likely]]
@@ -215,14 +219,20 @@ List::List(MainWindow* main, const std::string& path, bool input):
 			ActionUpN(tb.GetContext().repeat);
 	});
 
-	AddKeyboardInput(Settings::Keys::List::up_page, [this](){ ActionUpN(Settings::Layout::List::page_size); });
+	AddKeyboardInput(Settings::Keys::List::up_page, [this]
+	{
+		ActionUpN(Settings::Layout::List::page_size);
+	});
 
 	AddMouseInput(Mouse({Vec2i(0, 0), Vec2i(0, 0)}, Mouse::MOUSE_WHEEL_UP,
 				[this](const Vec2i&){ ActionUpN(1); }));
 
-	AddKeyboardInput(Settings::Keys::Go::top,  [this](){ ActionSetPosition(0); });
+	AddKeyboardInput(Settings::Keys::Go::top,  [this]
+	{
+		ActionSetPosition(0);
+	});
 
-	AddKeyboardInput(Settings::Keys::Go::bottom,  [this]()
+	AddKeyboardInput(Settings::Keys::Go::bottom,  [this]
 	{
 		Termbox& tb = Termbox::GetTermbox();
 		if (tb.GetContext().hasRepeat)
@@ -231,22 +241,47 @@ List::List(MainWindow* main, const std::string& path, bool input):
 			ActionSetPosition(GetEntries()-1);
 	});
 
-	AddKeyboardInput(Settings::Keys::List::left,  [this]() { ActionLeft(); });
+	AddKeyboardInput(Settings::Keys::List::left,  [this]
+	{
+		ActionLeft();
+	});
 
-	AddKeyboardInput(Settings::Keys::List::right, [this]() { ActionRight(); });
+	AddKeyboardInput(Settings::Keys::List::right, [this]
+	{
+		ActionRight();
+	});
 
 	AddMouseInput({{Vec2i(0, 0), Vec2i(0, 0)}, Mouse::MOUSE_LEFT, [this](const Vec2i& pos){ ActionMouseClick(pos); }});
 
 	// Other
-	AddKeyboardInput(Settings::Keys::Go::home, [this]() { m_main->CD("~"); });
-
-	AddKeyboardInput(Settings::Keys::Go::root, [this]() { m_main->CD("/"); });
+	AddKeyboardInput(Settings::Keys::Go::home, [this]
+	{
+		m_main->CD("~");
+	});
+	AddKeyboardInput(Settings::Keys::Go::root, [this]
+	{
+		m_main->CD("/");
+	});
 }
 
 List::~List()
 {
 }
 
+void List::MoveFiles(List&& l, bool preservePos)
+{
+	const auto pos = l.GetPos();
+
+	m_dir = l.m_dir;
+	m_files = std::move(l.m_files);
+
+	SetEntries(m_files.size());
+
+	if (preservePos)
+		ActionSetPosition(pos);
+}
+
+/*
 void List::UpdateFiles()
 {
 	auto [error, flag] = m_dir->GetFiles();
@@ -300,17 +335,146 @@ void List::UpdateFilter()
 	SetEntries(m_dir->SizeD());
 	ActionSetPosition(0);
 }
+*/
 
-void List::SetShowHidden(bool v)
+void List::SetSettings(const List::DirectorySettings& settings)
 {
-	auto f = m_dir->GetFilter();
-	f.HiddenFiles = v;
-	m_dir->SetFilter(std::move(f));
+	m_settings = settings;
 }
 
-bool List::GetShowHidden() const
+const List::DirectorySettings& List::GetSettings() const
 {
-	return m_dir->GetFilter().HiddenFiles;
+	return m_settings;
+}
+
+void List::SetFilter(const List::DirectoryFilter& filter)
+{
+	m_filter = filter;
+}
+
+const List::DirectoryFilter& List::GetFilter() const
+{
+	return m_filter;
+}
+
+std::size_t List::Size() const
+{
+	return m_files.size();
+}
+
+void List::UpdateFromDir(bool preservePos)
+{
+	File current;
+	if (preservePos)
+		current = *m_files[GetPos()].first; // copy
+
+	[&] // Filter
+	{
+		m_files.clear();
+		m_files.reserve(m_dir->Size());
+		if (!m_filter.Match.empty())
+		{
+			try
+			{
+				const std::wregex re(Util::StringConvert<wchar_t>(m_filter.Match), Settings::Filter::regex_mode);
+
+				for (std::size_t i = 0; i < m_dir->Size(); ++i)
+				{
+					File& f = (*m_dir)[i];
+					if (f.name.size() == 0 || (!m_filter.HiddenFiles && f.name[0] == U'.'))
+						continue;
+
+					const auto s = Util::StringConvert<wchar_t>(f.name);
+					if(std::wsmatch m; std::regex_search(s, m, re, Settings::Filter::search_mode))
+					{
+						FileMatch match;
+						for (std::size_t j = 0; j < m.size(); ++j)
+						{
+						std::cout << m.size() << " ";
+							match.matches.push_back({FileMatch::FILTER, m.position(j), m.length(j)});
+						}
+
+						m_files.push_back({&f, std::move(match)});
+					}
+				}
+
+				return;
+			}
+			catch (std::regex_error& e)
+			{ }
+		}
+
+		// If regex is invalid, we use the default list
+		for (std::size_t i = 0; i < m_dir->Size(); ++i)
+		{
+			File& f = (*m_dir)[i];
+			if (f.name.size() == 0 || (!m_filter.HiddenFiles && f.name[0] == U'.'))
+				continue;
+
+			m_files.push_back({&f, FileMatch{}});
+		}
+	}();
+
+	// Sort
+	using namespace std::placeholders;
+	std::sort(m_files.begin(), m_files.end(), std::bind(SortFns[m_settings.SortSettings.SortFn].first, _1, _2, m_settings.SortSettings));
+
+	SetEntries(Size());
+
+	if (preservePos)
+	{
+		const auto pos = Find(current.name, current.mode);
+		if (pos == static_cast<std::size_t>(-1))
+			ActionSetPosition(0);
+		else
+			ActionSetPosition(pos);
+	}
+}
+
+void List::UpdateFromFilesystem(bool preservePos)
+{
+	auto [error, flag] = m_dir->GetFiles();
+	if (error)
+	{
+		switch (flag)
+		{
+			case EACCES:
+				m_main->Error(U"Error: No permission");
+				break;
+			case EFAULT:
+				m_main->Error(U"Error: Path points outside your accessible address space");
+				break;
+			case EIO:
+				m_main->Error(U"Error: An I/O error occurred.");
+				break;
+			case ELOOP:
+				m_main->Error(U"Error: Too many symbolic links were encountered in resolving path.");
+				break;
+			case ENAMETOOLONG:
+				m_main->Error(U"Error: Path is too long.");
+				break;
+			case ENOENT:
+				m_main->Error(U"Error: The directory specified in path does not exist.");
+				break;
+			case ENOMEM:
+				m_main->Error(U"Error: Insufficient kernel memory was available.");
+				break;
+			case ENOTDIR:
+				m_main->Error(U"Error: A component of path is not a directory.");
+				break;
+			case EMFILE:
+				m_main->Error(U"Error: The per-process limit on the number of open file de‐ scriptors has been reached.");
+				break;
+			case ENFILE:
+				m_main->Error(U"Error: The  system-wide  limit  on the total number of open files has been reached.");
+				break;
+			default:
+				m_main->Error(U"Error: Cannot access directory");
+				break;
+		}
+	}
+
+	UpdateFromDir(preservePos);
 }
 
 Directory* List::GetDir()
@@ -321,5 +485,47 @@ Directory* List::GetDir()
 void List::SetDir(Directory* dir)
 {
 	m_dir = dir;
-	SetEntries(m_dir->SizeD());
 }
+
+const std::pair<const File&, const FileMatch&> List::Get(std::size_t i) const
+{
+	return {*m_files[i].first, m_files[i].second};
+}
+
+std::pair<File&, FileMatch&> List::Get(std::size_t i)
+{
+	return {*m_files[i].first, m_files[i].second};
+}
+
+std::size_t List::Find(const String& name, Mode mode, std::size_t beg) const
+{
+	for (std::size_t i = beg; i < m_files.size(); ++i)
+	{
+		const File& f = *m_files[i].first;
+
+		if (f.mode != mode)
+			continue;
+		if (f.name != name)
+			continue;
+
+		return i;
+	}
+
+	return static_cast<std::size_t>(-1);
+}
+
+std::size_t List::FindByName(const String& name) const
+{
+	for (std::size_t i; i < m_files.size(); ++i)
+	{
+		const File& f = *m_files[i].first;
+
+		if (f.name != name)
+			continue;
+
+		return i;
+	}
+
+	return static_cast<std::size_t>(-1);
+}
+

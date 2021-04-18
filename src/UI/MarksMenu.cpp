@@ -1,9 +1,9 @@
-#include "Marks.hpp"
-#include "MainWindow.hpp"
+#include "MarksMenu.hpp"
+#include "../MainWindow.hpp"
 
-std::map<std::string, Marks::Marked>* Shared::marked = nullptr;
+std::map<std::string, MarksMenu::Marked>* Shared::marked = nullptr;
 
-std::pair<TBStyle, TBStyle> Marks::DrawFn(std::size_t i, Vec2i pos, int w, bool hovered, Char trailing)
+std::pair<TBStyle, TBStyle> MarksMenu::DrawFn(std::size_t i, Vec2i pos, int w, bool hovered, Char trailing)
 {
 	// Some optimization, because the DrawFn are called in order...
 	// This makes getting the i-th element O(1) (except for the first)
@@ -64,17 +64,17 @@ std::pair<TBStyle, TBStyle> Marks::DrawFn(std::size_t i, Vec2i pos, int w, bool 
 	return {s, s};
 }
 
-void Marks::MarkFn(std::size_t, MarkType) { }
+void MarksMenu::MarkFn(std::size_t, MarkType) { }
 
 using namespace std::placeholders;
-Marks::Marks(MainWindow* main):
-	MarkSelect(std::bind(&Marks::DrawFn, this, _1, _2, _3, _4, _5), std::bind(&Marks::MarkFn, this, _1, _2)),
+MarksMenu::MarksMenu(MainWindow* main):
+	MarksMenuBase(std::bind(&MarksMenu::DrawFn, this, _1, _2, _3, _4, _5), std::bind(&MarksMenu::MarkFn, this, _1, _2)),
 	m_main(main),
 	m_last_i(0)
 {
 	// First time
 	if (Shared::marked == nullptr)
-		Shared::marked = new std::map<std::string, Marks::Marked>();
+		Shared::marked = new std::map<std::string, MarksMenu::Marked>();
 
 	m_it = Shared::marked->begin();
 
@@ -130,15 +130,26 @@ Marks::Marks(MainWindow* main):
 		m_main->SetMode(MainWindow::CurrentMode::NORMAL);
 	});
 
+	AddKeyboardInput(Settings::Keys::Marks::exit, [this]
+	{
+		m_main->SetMode(MainWindow::CurrentMode::NORMAL);
+	});
+
+	OnChangePosition.AddEvent([this]()
+	{
+		// Updating the repeat
+		m_main->SetWidgetExpired(m_main->GetTablineID(), true);
+	});
+
 	SetBackground(Settings::Style::Marks::background);
 }
 
-Marks::~Marks()
+MarksMenu::~MarksMenu()
 {
 	
 }
 
-void Marks::AddMarks(const Directory* dir)
+void MarksMenu::AddMarks(const Directory* dir)
 {
 	// Path & check
 	const auto it = Shared::marked->find(dir->GetPath());
@@ -174,7 +185,7 @@ void Marks::AddMarks(const Directory* dir)
 	SetEntries(Shared::marked->size());
 }
 
-void Marks::DelMarks(const std::string& path)
+void MarksMenu::DelMarks(const std::string& path)
 {
 	const auto it = Shared::marked->find(path);
 	if (it != Shared::marked->end()) [[likely]]
@@ -186,7 +197,7 @@ void Marks::DelMarks(const std::string& path)
 	SetEntries(Shared::marked->size());
 }
 
-void Marks::SetMarks(Directory* dir)
+void MarksMenu::SetMarks(Directory* dir)
 {
 	const auto it = Shared::marked->find(dir->GetPath());
 	if (it == Shared::marked->end())

@@ -79,14 +79,14 @@ std::pair<Actions::OpenType, const Actions::Opener*> Actions::GetOpener(const Fi
 	return {Actions::OpenType::CustomOpen, nullptr};
 }
 
-void Actions::Open(const File& f, const std::string& path, const Opener* opener)
+void Actions::Open(const File& f, const std::string& path, const Opener& opener)
 {
 	int status = 0;
 	pid_t pid = fork();
 	if (pid == -1)
 		throw Util::Exception("Ations::Open() : fork() failed");
 	
-	if (opener->flag & Opener::Close)
+	if (opener.flag & Opener::Close)
 		Termbox::Close();
 	if (pid == 0) // child
 	{
@@ -94,7 +94,7 @@ void Actions::Open(const File& f, const std::string& path, const Opener* opener)
 		if (chdir(path.c_str()) == -1)
 			throw Util::Exception("chdir() failed");
 
-		if (opener->flag & Opener::SupressOutput)
+		if (opener.flag & Opener::SupressOutput)
 		{
 			int fd = open("/dev/null", O_WRONLY, 0200);
 
@@ -102,15 +102,15 @@ void Actions::Open(const File& f, const std::string& path, const Opener* opener)
 			dup2(fd, 2); // stderr
 			close(fd);
 		}
-		if (opener->flag & Opener::SetSid)
+		if (opener.flag & Opener::SetSid)
 			setsid();
 
-		execlp("/bin/sh", "sh", "-c", opener->GetCommand(f, path).c_str(), (char*)0);
+		execlp("/bin/sh", "sh", "-c", opener.GetCommand(f, path).c_str(), (char*)0);
 		exit(1);
 	}
 	else // parent
 	{
-		if (opener->flag & Opener::Close)
+		if (opener.flag & Opener::Close)
 		{
 			std::cout << "waiting...";
 			waitpid(pid, &status, 0);
@@ -118,8 +118,22 @@ void Actions::Open(const File& f, const std::string& path, const Opener* opener)
 		}
 	}
 
-	if (opener->flag & Opener::Close)
+	if (opener.flag & Opener::Close)
 	{
 	}
 
+}
+
+bool Actions::CustomOpen(const File& f, const std::string& path, const std::string& format)
+{
+	try
+	{
+		Open(f, path, Opener(format, Opener::Close));
+	}
+	catch (fmt::format_error& e)
+	{
+		return false;
+	}
+
+	return true;
 }

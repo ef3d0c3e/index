@@ -13,7 +13,6 @@ void Statusline::Draw()
 		return;
 	}
 
-
 	//* Left side
 	
 	// Margin
@@ -31,7 +30,7 @@ void Statusline::Draw()
 
 	if (m_main->GetList()->GetPos() < m_main->GetList()->GetEntries()) [[likely]]
 	{
-		const File& f = m_main->GetDir()->Get(m_main->GetList()->GetPos()).first;
+		const File& f = m_main->GetList()->Get(m_main->GetList()->GetPos()).first;
 
 		// Filemode
 		{

@@ -111,8 +111,8 @@ const static auto CompiledIcons = []()
 	);
 
 	static const auto Extensions = Util::make_array(
-		Ft2{U" "sv, {0xFFFFFF, 0x4040F0}, TextStyle::None, {U"c"sv, U"h"sv}},
-		Ft2{U" "sv, {0xFFFFFF, 0x4040F0}, TextStyle::None, {U"cpp"sv, U"hpp"sv, U"cxx"sv, U"tcc"sv, U"cc"sv, U"hh"sv}},
+		Ft2{U"ﭰ "sv, {0xFFFFFF, 0x4040F0}, TextStyle::None, {U"c"sv, U"h"sv}},
+		Ft2{U"ﭱ "sv, {0xFFFFFF, 0x4040F0}, TextStyle::None, {U"cpp"sv, U"hpp"sv, U"cxx"sv, U"tcc"sv, U"cc"sv, U"hh"sv}},
 		Ft2{U" "sv, {0xFFFFFF, 0x4040F0}, TextStyle::None, {U"py"sv}},
 		Ft2{U"亮"sv, {0xFFFFFF, 0x4040F0}, TextStyle::None, {U"sh"sv, U"zsh"sv, U"bash"sv}},
 		Ft2{U" "sv, {0xA0F0B0}, TextStyle::None, {U"out"sv}},

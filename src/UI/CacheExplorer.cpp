@@ -85,7 +85,7 @@ CacheExplorer::CacheExplorer(MainWindow* main):
 	AddMouseInput(Mouse({Vec2i(0, 0), Vec2i(0, 0)}, Mouse::MOUSE_WHEEL_DOWN,
 				[this](const Vec2i&){ ActionDownN(1); }));
 
-	AddKeyboardInput(Settings::Keys::List::down, [this]
+	AddKeyboardInput(Settings::Keys::List::up, [this]
 	{
 		Termbox& tb = Termbox::GetTermbox();
 		if (tb.GetContext().repeat == 0) [[likely]]
@@ -117,6 +117,17 @@ CacheExplorer::CacheExplorer(MainWindow* main):
 			++it;
 		m_main->CD(it->first);
 		m_main->SetMode(MainWindow::CurrentMode::NORMAL);
+	});
+
+	AddKeyboardInput(Settings::Keys::Cache::exit, [this]
+	{
+		m_main->SetMode(MainWindow::CurrentMode::NORMAL);
+	});
+
+	OnChangePosition.AddEvent([this]()
+	{
+		// Updating the repeat
+		m_main->SetWidgetExpired(m_main->GetTablineID(), true);
 	});
 
 	// Update size before redraws

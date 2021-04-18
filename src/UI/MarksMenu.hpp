@@ -1,13 +1,13 @@
-#ifndef MARKS_HPP
-#define MARKS_HPP
+#ifndef INDEX_UI_MARKSMENU_HPP
+#define INDEX_UI_MARKSMENU_HPP
 
-#include "Settings.hpp"
-#include "TermboxWidgets/Widgets.hpp"
+#include "../Settings.hpp"
+#include "../TermboxWidgets/Widgets.hpp"
 
-typedef Widgets::ListSelect<Settings::Layout::Marks::settings, File, MarkType> MarkSelect;
+typedef Widgets::ListSelect<Settings::Layout::Marks::settings, MarkType> MarksMenuBase;
 class MainWindow;
 
-class Marks : public MarkSelect
+class MarksMenu : public MarksMenuBase
 {
 ////////////////////////////////////////////////
 /// \brief Class that will hold informations about marks
@@ -25,10 +25,10 @@ private:
 	void MarkFn(std::size_t, MarkType);
 
 	std::size_t m_last_i;
-	std::map<std::string, Marks::Marked>::iterator m_it;
+	std::map<std::string, MarksMenu::Marked>::iterator m_it;
 public:
-	Marks(MainWindow* main);
-	~Marks();
+	MarksMenu(MainWindow* main);
+	~MarksMenu();
 
 	void AddMarks(const Directory* dir);
 	void DelMarks(const std::string& path);
@@ -38,7 +38,7 @@ public:
 
 namespace Shared
 {
-	extern std::map<std::string, Marks::Marked>* marked;
+	extern std::map<std::string, MarksMenu::Marked>* marked;
 }
 
-#endif // MARKS_HPP
+#endif // INDEX_UI_MARKSMENU_HPP

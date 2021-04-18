@@ -42,7 +42,7 @@ namespace Settings
 		namespace List
 		{
 			constexpr bool icons = true;
-			constexpr int icons_width = 2;
+			constexpr std::size_t icons_min_width = 2;
 			constexpr bool display_link = true;
 			constexpr Char link_arrow[] = U"➜ "; // They are not treated as wide character by wcwidth
 			constexpr Char link_invalid_arrow[] = U"➜ ";
@@ -229,10 +229,10 @@ namespace Settings
 
 			const static std::array<TBString, 3> modes = {
 				// Regular modes
-				TBString{U"[LIST]", {0xF07040, background.s.bg, TextStyle::Bold}},
-				TBString{U"[MARKS]", {0xF07040, background.s.bg, TextStyle::Bold}},
+				TBString{U" LIST ", {background.s.bg, 0xF07040, TextStyle::Bold}},
+				TBString{U" MARKS ", {background.s.bg, 0xF07040, TextStyle::Bold}},
 				// Debug modes
-				TBString{U"[CACHE]", {0xD080D0, background.s.bg, TextStyle::Bold}},
+				TBString{U" CACHE ", {background.s.bg, 0xD080D0, TextStyle::Bold}},
 			};
 		}
 
@@ -376,6 +376,7 @@ namespace Settings
 		namespace Cache
 		{
 			constexpr Char cache[] = U"d c";
+			constexpr Char exit[] = U"ESC";
 		}
 
 		constexpr Char filter[] = U"f";
@@ -384,11 +385,13 @@ namespace Settings
 	namespace Filter
 	{
 		constexpr auto regex_mode = std::regex_constants::ECMAScript | std::regex_constants::icase;
+		constexpr auto search_mode = std::regex_constants::match_any;
 	}
 
 	namespace Cache
 	{
 		constexpr std::size_t cache_num = 1<<8; ///< Maximum number of (unused) cached directories at once
+		constexpr std::size_t update_age = -1;  ///< Update from filesystem if older than (-1 means to not update) (in seconds)
 	}
 }
 

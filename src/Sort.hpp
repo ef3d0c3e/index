@@ -3,6 +3,21 @@
 
 #include "FileSystem.hpp"
 
+////////////////////////////////////////////////
+/// \brief Represents a match between a file and a filter
+/// Currently there are only two possible match type: FILTER and FIND
+////////////////////////////////////////////////
+struct FileMatch
+{
+	MAKE_CENUMV_Q(MatchType, std::uint8_t,
+		FILTER, 0,
+		FIND, 1, // TODO...
+	);
+	std::vector<std::tuple<MatchType, std::size_t, std::size_t>> matches; // <pos, size>
+
+	FileMatch() {}
+};
+
 namespace Sort
 {
 // {{{ Functions

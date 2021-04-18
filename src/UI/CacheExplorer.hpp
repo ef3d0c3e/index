@@ -6,7 +6,7 @@
 #include "../DirectoryCache.hpp"
 
 class MainWindow;
-typedef Widgets::ListSelect<Settings::Layout::Cache::settings, File, MarkType> CacheExplorerBase;
+typedef Widgets::ListSelect<Settings::Layout::Cache::settings, MarkType> CacheExplorerBase;
 
 class CacheExplorer : public CacheExplorerBase
 {

@@ -4,7 +4,7 @@
 #include "Tabline.hpp"
 #include "Statusline.hpp"
 #include "Menu.hpp"
-#include "Marks.hpp"
+#include "UI/MarksMenu.hpp"
 #include "Prompt.hpp"
 #include "DirectoryCache.hpp"
 #include "UI/CacheExplorer.hpp"
@@ -214,19 +214,13 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 	m_marksMenuId = AddWidget(m_marksMenu);
 
 	// * Marks List
-	m_marks = new Marks(this);
+	m_marks = new MarksMenu(this);
 	m_marks->SetVisible(false);
 	m_marks->SetActive(false);
-	m_marks->OnChangePosition.AddEvent([this]()
-	{
-		// Updating the repeat
-		SetWidgetExpired(m_tablineId, true);
-	});
 	m_marksId = AddWidget(m_marks);
 
 	// * Keybindings
 	dInput->AddKeyboardInput(Settings::Keys::Marks::marks, [this](){ SetMode(m_currentMode == CurrentMode::MARKS ? CurrentMode::NORMAL : CurrentMode::MARKS); });
-	m_marks->AddKeyboardInput(Settings::Keys::Marks::exit, [this]() { SetMode(CurrentMode::NORMAL); });
 	m_dir->AddKeyboardInput(Settings::Keys::Marks::select, [this]()
 	{
 		if (Termbox::GetContext().hasRepeat)
@@ -236,12 +230,12 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 	});
 	m_dir->AddKeyboardInput(Settings::Keys::Marks::select_toggle_all, [this]()
 	{
-		for (std::size_t i = 0; i < m_dir->GetDir()->Size(); ++i)
+		for (std::size_t i = 0; i < m_dir->Size(); ++i)
 			m_dir->MarkFn(i, MarkType::SELECTED);
 	});
 	m_dir->AddKeyboardInput(Settings::Keys::Marks::unselect_all, [this]()
 	{
-		for (std::size_t i = 0; i < m_dir->GetDir()->Size(); ++i)
+		for (std::size_t i = 0; i < m_dir->Size(); ++i)
 			(*m_dir->GetDir())[i].mark &= ~(MarkType::SELECTED);
 	});
 	m_dir->AddKeyboardInput(Settings::Keys::Marks::tag, [this]()
@@ -277,29 +271,36 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 			Settings::Style::Menu::show_menu_true,
 			{U"Toggle parent pane", Settings::Style::Menu::show_menu},
 		});
-	m_showMenu->AddKeyboardInput(Settings::Keys::Show::menu, [this]() {
+	m_showMenu->AddKeyboardInput(Settings::Keys::Show::menu, [this]
+	{
 			// Update some of the values
 
 			Termbox::GetContext().dontResetRepeat = true;
 			m_showMenu->ActionShow();
 	});
-	m_showMenu->OnStopShowing.AddEvent([this]() {
+	m_showMenu->OnStopShowing.AddEvent([this]
+	{
 			Invalidate();
 	}, EventWhen::AFTER);
 	m_showMenuId = AddWidget(m_showMenu);
 	// * Keybindings
-	m_dir->AddKeyboardInput(Settings::Keys::Show::hidden, [this]() {
+	m_dir->AddKeyboardInput(Settings::Keys::Show::hidden, [this]
+	{
 		//TODO: Store the marks?
-		const String filename = m_dir->GetDir()->Get(m_dir->GetPos()).first.name;
-		const bool v = !m_dir->GetShowHidden();
+		const String filename = m_dir->Get(m_dir->GetPos()).first.name;
+		auto dirFilter = m_dir->GetFilter();
+		const bool v = !dirFilter.HiddenFiles;
 
 		// Set the new filter
-		m_dir->SetShowHidden(v);
-		m_parent->SetShowHidden(v);
+		dirFilter.HiddenFiles = v;
+		m_dir->SetFilter(dirFilter);
+		auto parentFilter = m_dir->GetFilter();
+		parentFilter.HiddenFiles = v;
+		m_parent->SetFilter(parentFilter);
 
 		// Update the list
-		m_parent->UpdateFilter();
-		m_dir->UpdateFilter();
+		m_dir->UpdateFromDir();
+		m_parent->UpdateFromDir();
 
 		// Reload the marks
 		m_marks->SetMarks(m_dir->GetDir());
@@ -395,18 +396,19 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 	dInput->AddKeyboardInput(Settings::Keys::filter, [this, show_prompt]() {
 		m_prompt->SetPrefix(Settings::Style::Filter::filter_prompt_prefix);
 		m_prompt->SetBackground(Settings::Style::Filter::filter_prompt_bg);
-		m_prompt->SetText(m_dir->GetDir()->GetFilter().Match);
+		m_prompt->SetText(m_dir->GetFilter().Match);
 		show_prompt();
 
+		// We only set filter for dir
 		m_prompt->OnStopShowing.AddEvent([this](bool v)
 		{
 			if (!v)
 				return;
-			const String name = (m_dir->GetEntries() != 0) ? m_dir->GetDir()->Get(m_dir->GetPos()).first.name : U"";
-			auto filter = m_dir->GetDir()->GetFilter();
+			const String name = (m_dir->GetEntries() != 0) ? m_dir->Get(m_dir->GetPos()).first.name : U"";
+			auto filter = m_dir->GetFilter();
 			filter.Match = m_prompt->GetText();
-			m_dir->GetDir()->SetFilter(filter);
-			m_dir->UpdateFilter();
+			m_dir->SetFilter(filter);
+			m_dir->UpdateFromDir();
 
 			m_dir->ActionSetPosition(GetFilePosition(name));
 		}, EventWhen::AFTER_ONCE);
@@ -424,11 +426,13 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 	m_cacheExplorer->AddKeyboardInput(Settings::Keys::Cache::cache, [this](){ SetMode(CurrentMode::NORMAL); });
 	// }}}
 
-	UpdateFiles();
+	m_dir->UpdateFromDir();
+	m_parent->UpdateFromDir();
+
 	m_marks->SetMarks(m_dir->GetDir());
 	Resize(Termbox::GetDim());
 	// Try to find position of directory in the parent List
-	const auto pos = m_parent->GetDir()->FindD(
+	const auto pos = m_parent->GetDir()->Find(
 		Util::StringConvert<Char>(m_dir->GetDir()->GetFolderName()),
 		Mode::DIR);
 	if (pos != static_cast<std::size_t>(-1))
@@ -501,24 +505,13 @@ void MainWindow::Resize(Vec2i dim)
 	m_prompt->SetSize(Vec2i(w, 1));
 }
 
-void MainWindow::UpdateFiles()
-{
-	m_dir->UpdateFiles();
-	m_parent->UpdateFiles();
-}
-
-void MainWindow::UpdateFilters()
-{
-	m_dir->UpdateFilter();
-	m_parent->UpdateFilter();
-}
-
 std::size_t MainWindow::GetFilePosition(const String& name)
 {
-	for (std::size_t i = 0; i < m_dir->GetEntries(); ++i)
-		if (m_dir->GetDir()->Get(i).first.name == name)
-			return i;
-	return 0;
+	const auto pos = m_dir->FindByName(name);
+	if (pos == static_cast<std::size_t>(-1))
+		return 0;
+
+	return pos;
 }
 
 void MainWindow::OnChangeDir()
@@ -544,24 +537,15 @@ void MainWindow::Forward(const String& folder)
 	// Marks
 	m_marks->AddMarks(m_dir->GetDir());
 
-	// Parent = Dir
+	// Parent := Dir
 	gDirectoryCache.DeleteDirectory(m_parent->GetDir());
-	m_parent->SetDir(m_dir->GetDir());
-	const auto parentPos = m_dir->GetPos();
+	m_parent->MoveFiles(std::move(*m_dir), true);
+	m_parent->UpdateFromDir(); // We want to re-filter it
 
-	// Dir = new ...
-	m_dir->SetDir(gDirectoryCache.GetDirectory(m_dir->GetDir()->GetPath() + "/" + Util::StringConvert<char>(folder)));
-	m_dir->GetDir()->SetFilter(m_parent->GetDir()->GetFilter());
-
-	// Remove match filter for parent
-	auto filter = m_parent->GetDir()->GetFilter();
-	filter.Match = U"";
-	m_parent->GetDir()->SetFilter(filter);
-
-	// Update the listing & sort it
-	m_dir->UpdateFiles();
-	m_parent->UpdateFiles();
-	m_parent->ActionSetPosition(parentPos);
+	// Dir := ...
+	m_dir->SetDir(gDirectoryCache.GetDirectory(m_dir->GetDir()->GetPath() + "/" + Util::StringConvert<char>(folder)).first);
+	m_dir->UpdateFromDir();
+	m_dir->ActionSetPosition(0);
 
 	OnChangeDir();
 }
@@ -571,18 +555,17 @@ void MainWindow::Back()
 	// Marks
 	m_marks->AddMarks(m_dir->GetDir());
 
-	const auto filter = m_dir->GetDir()->GetFilter(); // copy
+	// Dir := Parent
 	gDirectoryCache.DeleteDirectory(m_dir->GetDir());
-	m_dir->SetDir(m_parent->GetDir());
-	m_dir->ActionSetPosition(m_parent->GetPos());
-	m_dir->GetDir()->SetFilter(filter);
-	m_dir->UpdateFilter();
+	m_dir->MoveFiles(std::move(*m_parent), true);
+	m_dir->UpdateFromDir(); // We want to re-filter it
 
-	m_parent->SetDir(gDirectoryCache.GetDirectory(m_parent->GetDir()->GetPath() + "/.."));
-	m_parent->UpdateFiles();
-	const String name = Util::StringConvert<Char>(m_dir->GetDir()->GetFolderName());
-	
-	const auto pos = m_parent->GetDir()->FindD(
+	// Parent := ...
+	m_parent->SetDir(gDirectoryCache.GetDirectory(m_dir->GetDir()->GetPath() + "/..").first);
+	m_parent->UpdateFromDir();
+
+	// Find the previous dir
+	const auto pos = m_parent->Find(
 		Util::StringConvert<Char>(m_dir->GetDir()->GetFolderName()),
 		Mode::DIR);
 	if (pos != static_cast<std::size_t>(-1))
@@ -591,11 +574,6 @@ void MainWindow::Back()
 		m_parent->ActionSetPosition(0);
 
 	OnChangeDir();
-}
-
-const Directory* MainWindow::GetDir() const
-{
-	return m_dir->GetDir();
 }
 
 const List* MainWindow::GetList() const
@@ -621,16 +599,23 @@ void MainWindow::CD(const std::string& path)
 	gDirectoryCache.DeleteDirectory(m_dir->GetDir());
 	gDirectoryCache.DeleteDirectory(m_parent->GetDir());
 
-	m_dir->SetDir(gDirectoryCache.GetDirectory(path));
-	m_dir->UpdateFiles();
+	m_dir->SetDir(gDirectoryCache.GetDirectory(path).first);
+	m_parent->SetDir(gDirectoryCache.GetDirectory(m_dir->GetDir()->GetPath() + "/..").first);
 
-	m_parent->SetDir(gDirectoryCache.GetDirectory(m_dir->GetDir()->GetPath() + "/.."));
-	m_parent->UpdateFiles();
+	m_dir->UpdateFromDir(false);
+	m_parent->UpdateFromDir(false);
 
+	// Find the previous dir
+	const auto pos = m_parent->Find(
+		Util::StringConvert<Char>(m_dir->GetDir()->GetFolderName()),
+		Mode::DIR);
+	if (pos != static_cast<std::size_t>(-1))
+		m_parent->ActionSetPosition(pos);
+	else
+		m_parent->ActionSetPosition(0);
+
+	//TODO: position cache
 	
-	m_parent->ActionSetPosition(0);
-	m_dir->ActionSetPosition(0);
-
 	OnChangeDir();
 }
 
@@ -680,4 +665,10 @@ MainWindow::CurrentMode MainWindow::GetMode() const
 std::size_t MainWindow::GetTab() const
 {
 	return m_tab;
+}
+
+
+const std::string& MainWindow::GetCurrentPath() const
+{
+	return m_dir->GetDir()->GetPath();
 }

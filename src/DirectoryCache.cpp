@@ -13,7 +13,8 @@ DirectoryCache::Cached* DirectoryCache::Find(const std::string& dir)
 void DirectoryCache::Optimize()
 {
 	using P = std::pair<const std::string*, Cached*>;
-	std::vector<P> sorted(m_cache.size());
+	std::vector<P> sorted;
+	sorted.reserve(m_cache.size());
 
 	for (auto& cached : m_cache)
 	{
@@ -45,7 +46,7 @@ DirectoryCache::~DirectoryCache()
 }
 
 
-Directory* DirectoryCache::GetDirectory(const std::string& path)
+std::pair<Directory*, bool> DirectoryCache::GetDirectory(const std::string& path)
 {
 	const std::string resolved = GetUsablePath(path);
 
@@ -60,11 +61,13 @@ Directory* DirectoryCache::GetDirectory(const std::string& path)
 		}));
 
 		Optimize();
-		return dir;
+		return std::make_pair(dir, false);
 	}
 
+	bool shouldUpdate = time(NULL)-cached->updated > Settings::Cache::update_age;
+
 	++cached->refCount;
-	return cached->dir;
+	return std::make_pair(cached->dir, shouldUpdate);
 }
 
 void DirectoryCache::DeleteDirectory(Directory* dir)

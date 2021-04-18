@@ -68,7 +68,7 @@ void Tabline::Draw()
 
 	// Directory
 	{
-		const String path = Util::StringConvert<Char>(m_main->GetDir()->GetPath());
+		const String path = Util::StringConvert<Char>(m_main->GetCurrentPath());
 		if (path.size() != 1 || path[0] != U'/')
 		{
 			x += Draw::TextLine(path, Settings::Style::Tabline::directory, Vec2i(x, y), w-x,
@@ -87,9 +87,9 @@ void Tabline::Draw()
 	}
 
 	// Selected entry
-	if (m_main->GetList()->GetPos() < m_main->GetList()->GetEntries()) [[likely]]
+	if (m_main->GetList()->GetPos() < m_main->GetList()->Size()) [[likely]]
 	{
-		x += Draw::TextLine((*m_main->GetDir()).Get(m_main->GetList()->GetPos()).first.name, Settings::Style::Tabline::selected, Vec2i(x, y), w-x,
+		x += Draw::TextLine(m_main->GetList()->Get(m_main->GetList()->GetPos()).first.name, Settings::Style::Tabline::selected, Vec2i(x, y), w-x,
 				{Settings::Layout::trailing_character, Settings::Style::Tabline::selected}, 0).first;
 		if (x >= w)
 			return;

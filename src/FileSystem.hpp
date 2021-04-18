@@ -83,23 +83,6 @@ struct File
 };
 
 ////////////////////////////////////////////////
-/// \brief Represents a match between a file and a filter
-/// Currently there are only two possible match type: FILTER and FIND
-////////////////////////////////////////////////
-struct FileMatch
-{
-	MAKE_CENUMV_Q(MatchType, std::uint8_t,
-		FILTER, 0,
-		FIND, 1, // TODO...
-	);
-	std::vector<std::tuple<MatchType, std::size_t, std::size_t>> matches; // <pos, size>
-
-	FileMatch() {}
-};
-
-typedef std::function<bool(const File&, const File&, const Sort::Settings&)> SortFn;
-
-////////////////////////////////////////////////
 /// \brief Represents a directory
 ////////////////////////////////////////////////
 class Directory
@@ -107,24 +90,8 @@ class Directory
 	std::string m_path; // Original path
 	std::string m_pathResolvedUnscaped; // Resolved
 
-	std::vector <File> m_oFiles; // All the files (unfiltered)
-	std::vector<std::pair<File*, FileMatch>> m_files; // The filtered list
+	std::vector <File> m_oFiles; // All the files
 
-public:
-	struct DirectorySettings
-	{
-		Sort::Settings SortSettings{};
-	};
-
-	struct DirectoryFilter
-	{
-		// Do something about passing it to parent/child
-		bool HiddenFiles = false; // false -> no hidden files
-		String Match = U"";
-	};
-private:
-	DirectorySettings m_settings;
-	DirectoryFilter m_filter;
 public:
 
 	////////////////////////////////////////////////
@@ -150,66 +117,16 @@ public:
 	File& operator[](std::size_t i);
 
 	////////////////////////////////////////////////
-	/// \brief Get a file from the directory
-	/// \param i The index of the file
-	/// \returns The file at index i and its match information
-	/// \warn Performs no bound checks
-	////////////////////////////////////////////////
-	const std::pair<const File&, const FileMatch&> Get(std::size_t i) const;
-	std::pair<File&, FileMatch&> Get(std::size_t i);
-
-	////////////////////////////////////////////////
 	/// \brief Get the number of files in the directory
 	/// \returns The number of files
 	////////////////////////////////////////////////
 	const std::size_t Size() const;
 
-
-	////////////////////////////////////////////////
-	/// \brief Get the number of files in the directory to be display
-	/// \returns The number of files to be displayed
-	////////////////////////////////////////////////
-	const std::size_t SizeD() const;
-
-	////////////////////////////////////////////////
-	/// \brief Filter oFiles and store the passing files in files
-	////////////////////////////////////////////////
-	void Filter();
-
-	////////////////////////////////////////////////
-	/// \brief Sort the files in the directory
-	////////////////////////////////////////////////
-	void Sort();
-
-	////////////////////////////////////////////////
-	/// \brief Change the settings
-	/// \param s The new settings
-	////////////////////////////////////////////////
-	void SetSettings(const DirectorySettings& s);
-
-	////////////////////////////////////////////////
-	/// \brief Get the settings
-	/// \returns The current settings
-	////////////////////////////////////////////////
-	const DirectorySettings& GetSettings() const;
-
-	////////////////////////////////////////////////
-	/// \brief Change the filter
-	/// \param s The new filter
-	////////////////////////////////////////////////
-	void SetFilter(const DirectoryFilter& f);
-
-	////////////////////////////////////////////////
-	/// \brief Get the filter
-	/// \returns The current filter
-	////////////////////////////////////////////////
-	const DirectoryFilter& GetFilter() const;
-
 	////////////////////////////////////////////////
 	/// \brief Get the path of the directory
 	/// \returns The path
 	////////////////////////////////////////////////
-	std::string GetPath() const;
+	const std::string& GetPath() const;
 
 	////////////////////////////////////////////////
 	/// \brief Get the name of the folder
@@ -222,12 +139,6 @@ public:
 	/// \returns The id of the first element that matched (else -1)
 	////////////////////////////////////////////////
 	std::size_t Find(const String& name, Mode mode, std::size_t beg = 0) const;
-
-	////////////////////////////////////////////////
-	/// \brief Get the first element matching the query in the display list
-	/// \returns The id of the first element that matched (else -1)
-	////////////////////////////////////////////////
-	std::size_t FindD(const String& name, Mode mode, std::size_t beg = 0) const;
 
 	////////////////////////////////////////////////
 	/// \brief Renames a path

@@ -41,9 +41,9 @@ public:
 	////////////////////////////////////////////////
 	/// \brief Get a directory from the cache or allocate it
 	/// \param path The path
-	/// \returns A directory corresponding to path
+	/// \returns A directory corresponding to path <The directory, Wether or not the directory should be updated from filesystem>
 	////////////////////////////////////////////////
-	Directory* GetDirectory(const std::string& path);
+	std::pair<Directory*, bool> GetDirectory(const std::string& path);
 
 	////////////////////////////////////////////////
 	/// \brief Handles a directory

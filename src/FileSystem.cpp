@@ -20,6 +20,9 @@ Directory::Directory(const std::string& path):
 	m_path(path)
 {
 	m_pathResolvedUnscaped = GetUsablePath(path);
+
+	//TODO: this is bad for error handling
+	GetFiles();
 }
 
 Directory::~Directory()
@@ -163,8 +166,6 @@ std::pair<bool, Error> Directory::GetFiles()
 
 	closedir(dir);
 
-	Filter();
-
 	return {false, errno};
 }
 
@@ -178,97 +179,12 @@ File& Directory::operator[](std::size_t i)
 	return m_oFiles[i];
 }
 
-const std::pair<const File&, const FileMatch&> Directory::Get(std::size_t i) const
-{
-	return {*m_files[i].first, m_files[i].second};
-}
-
-std::pair<File&, FileMatch&>Directory::Get(std::size_t i)
-{
-	return {*m_files[i].first, m_files[i].second};
-}
-
 const std::size_t Directory::Size() const
 {
 	return m_oFiles.size();
 }
 
-const std::size_t Directory::SizeD() const
-{
-	return m_files.size();
-}
-
-void Directory::SetSettings(const Directory::DirectorySettings& settings)
-{
-	m_settings = settings;
-}
-
-const Directory::DirectorySettings& Directory::GetSettings() const
-{
-	return m_settings;
-}
-
-void Directory::SetFilter(const Directory::DirectoryFilter& filter)
-{
-	m_filter = filter;
-}
-
-const Directory::DirectoryFilter& Directory::GetFilter() const
-{
-	return m_filter;
-}
-
-void Directory::Filter()
-{
-	m_files.clear();
-	m_files.reserve(m_oFiles.size());
-	if (!m_filter.Match.empty())
-	{
-		try
-		{
-			const std::wregex re(Util::StringConvert<wchar_t>(m_filter.Match), Settings::Filter::regex_mode);
-
-			for (std::size_t i = 0; i < m_oFiles.size(); ++i)
-			{
-				if (m_oFiles[i].name.size() == 0 || (!m_filter.HiddenFiles && m_oFiles[i].name[0] == U'.'))
-					continue;
-
-				const auto s = Util::StringConvert<wchar_t>(m_oFiles[i].name);
-				if(std::wsmatch m; std::regex_search(s, m, re))
-				{
-					FileMatch match;
-					for (std::size_t j = 0; j < m.size(); ++j)
-					{
-						match.matches.push_back({FileMatch::FILTER, m.position(j), m.length(j)});
-					}
-
-					m_files.push_back({&m_oFiles[i], std::move(match)});
-				}
-			}
-
-			return;
-		}
-		catch (std::regex_error& e)
-		{ }
-	}
-
-	// If regex is invalid, we use the default list
-	for (std::size_t i = 0; i < m_oFiles.size(); ++i)
-	{
-		if (m_oFiles[i].name.size() == 0 || (!m_filter.HiddenFiles && m_oFiles[i].name[0] == U'.'))
-			continue;
-
-		m_files.push_back({&m_oFiles[i], FileMatch{}});
-	}
-}
-
-void Directory::Sort()
-{
-	using namespace std::placeholders;
-	std::sort(m_files.begin(), m_files.end(), std::bind(SortFns[m_settings.SortSettings.SortFn].first, _1, _2, m_settings.SortSettings));
-}
-
-std::string Directory::GetPath() const
+const std::string& Directory::GetPath() const
 {
 	return m_pathResolvedUnscaped;
 }
@@ -287,23 +203,6 @@ std::size_t Directory::Find(const String& name, Mode mode, std::size_t beg) cons
 	for (std::size_t i = beg; i < m_oFiles.size(); ++i)
 	{
 		const File& f = m_oFiles[i];
-
-		if (f.mode != mode)
-			continue;
-		if (f.name != name)
-			continue;
-
-		return i;
-	}
-
-	return static_cast<std::size_t>(-1);
-}
-
-std::size_t Directory::FindD(const String& name, Mode mode, std::size_t beg) const
-{
-	for (std::size_t i = beg; i < m_files.size(); ++i)
-	{
-		const File& f = *m_files[i].first;
 
 		if (f.mode != mode)
 			continue;

@@ -7,7 +7,7 @@ class List;
 class Tabline;
 class Statusline;
 class Menu;
-class Marks;
+class MarksMenu;
 class Prompt;
 class CacheExplorer;
 
@@ -21,6 +21,9 @@ public:
 
 class MainWindow : public Window
 {
+	friend class CacheExplorer;
+	friend class MarksMenu;
+
 public:
 	MAKE_CENUM_Q(CurrentMode, std::uint8_t,
 		NORMAL, 0, // Default mode (directory list)
@@ -49,9 +52,8 @@ private:
 	Menu* m_changeMenu;
 	std::size_t m_changeMenuId;
 
-	Marks* m_marks;
+	MarksMenu* m_marks;
 	std::size_t m_marksId;
-	bool m_marksMode;
 
 	CacheExplorer* m_cacheExplorer;
 	std::size_t m_cacheExplorerId;
@@ -95,7 +97,6 @@ public:
 	void Forward(const String& folder);
 	void Back();
 
-	const Directory* GetDir() const;
 	const List* GetList() const;
 	const List* GetParentList() const;
 
@@ -115,6 +116,21 @@ public:
 	CurrentMode GetMode() const;
 
 	std::size_t GetTab() const;
+
+	////////////////////////////////////////////////
+	/// \brief Gets the tabline widget's id
+	/// \returns The tabline widget's id
+	////////////////////////////////////////////////
+	std::size_t GetTablineID() const
+	{
+		return m_tablineId;
+	}
+
+	////////////////////////////////////////////////
+	/// \brief Gets the current path
+	/// \returns The current path
+	////////////////////////////////////////////////
+	const std::string& GetCurrentPath() const;
 };
 
 #endif // INDEX_MAINWINDOW_HPP
