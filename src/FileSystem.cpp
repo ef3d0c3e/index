@@ -1,5 +1,4 @@
 #include "FileSystem.hpp"
-#include "Sort.hpp"
 #include "Settings.hpp"
 #include <dirent.h>
 #include <wordexp.h>

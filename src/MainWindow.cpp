@@ -8,6 +8,7 @@
 #include "Prompt.hpp"
 #include "DirectoryCache.hpp"
 #include "UI/CacheExplorer.hpp"
+#include "UI/SortMenu.hpp"
 
 MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 	Window::Window({U"", Settings::Style::default_text_style}),
@@ -114,14 +115,13 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 	// * Directories
 	m_dir = new List(this, path, true);
 	m_parent = new List(this, path + "/..", false);
-	if (m_dir->GetDir()->GetPath() == "/")
-		m_parent->SetVisible(false);
+	m_parent->SetVisible(ShouldShowParent());
 
 	m_parentId = AddWidget(m_parent);
 	m_dirId = AddWidget(m_dir);
 
-	m_dir->OnChangePosition.AddEvent([this](){ SetWidgetExpired(m_tablineId, true); }, EventWhen::AFTER);
-	m_dir->OnChangePosition.AddEvent([this](){ SetWidgetExpired(m_statuslineId, true); }, EventWhen::AFTER);
+	m_dir->OnChangePosition.AddEvent([this]{ SetWidgetExpired(m_tablineId, true); }, EventWhen::AFTER);
+	m_dir->OnChangePosition.AddEvent([this]{ SetWidgetExpired(m_statuslineId, true); }, EventWhen::AFTER);
 
 	// * Tabline & statusline
 	m_tabline = new Tabline(this);
@@ -313,8 +313,10 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 		? Settings::Style::Menu::show_menu_true : Settings::Style::Menu::show_menu_false;
 	});
 
-	m_dir->AddKeyboardInput(Settings::Keys::Show::parent, [this]() {
-		m_parent->SetVisible(!m_parent->IsVisible());
+	m_dir->AddKeyboardInput(Settings::Keys::Show::parent, [this]
+	{
+		m_settings.showParent = !m_settings.showParent;
+		m_parent->SetVisible(ShouldShowParent());
 		Invalidate();
 
 		// Update
@@ -392,6 +394,9 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 	});
 	// }}}
 
+	m_sortMenu = new SortMenu(this);
+	m_sortMenuId = AddWidget(m_sortMenu);
+
 	// {{{ Filter
 	dInput->AddKeyboardInput(Settings::Keys::filter, [this, show_prompt]() {
 		m_prompt->SetPrefix(Settings::Style::Filter::filter_prompt_prefix);
@@ -432,7 +437,7 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 	m_marks->SetMarks(m_dir->GetDir());
 	Resize(Termbox::GetDim());
 	// Try to find position of directory in the parent List
-	const auto pos = m_parent->GetDir()->Find(
+	const auto pos = m_parent->Find(
 		Util::StringConvert<Char>(m_dir->GetDir()->GetFolderName()),
 		Mode::DIR);
 	if (pos != static_cast<std::size_t>(-1))
@@ -465,6 +470,8 @@ void MainWindow::Resize(Vec2i dim)
 
 	m_changeMenu->SetPosition(Vec2i(0, h-1-m_changeMenu->GetHeight()));
 	m_changeMenu->SetSize(Vec2i(w, m_changeMenu->GetHeight()));
+
+	m_sortMenu->Resize(Vec2i(w, h));
 
 	// MainWindow layout
 	const int available_width = w-[&]<std::size_t... i>(std::index_sequence<i...>)
@@ -514,21 +521,26 @@ std::size_t MainWindow::GetFilePosition(const String& name)
 	return pos;
 }
 
+bool MainWindow::ShouldShowParent() const
+{
+	return m_settings.showParent && m_dir->GetDir()->GetPath() != "/";
+}
+
 void MainWindow::OnChangeDir()
 {
 	// Reload the marks
 	m_marks->SetMarks(m_dir->GetDir());
 
 	// If we're in '/', do not display the parent list
-	if (m_dir->GetDir()->GetPath() == "/")
-	{
-		m_parent->SetVisible(false);
-		Invalidate();
-	}
-	else
+	if (ShouldShowParent())
 	{
 		m_parent->SetVisible(true);
 		SetWidgetExpired(m_parentId, true);
+	}
+	else
+	{
+		m_parent->SetVisible(false);
+		Invalidate(); // We ha	ve some empty space that needs to be erased...
 	}
 }
 
@@ -638,7 +650,7 @@ void MainWindow::SetMode(CurrentMode mode)
 		case CurrentMode::NORMAL:
 			m_dir->SetVisible(true);
 			m_dir->SetActive(true);
-			m_parent->SetVisible(m_dir->GetDir()->GetPath() != "/");
+			m_parent->SetVisible(ShouldShowParent());
 			break;
 		case CurrentMode::MARKS:
 			m_marks->SetVisible(true);
@@ -665,6 +677,26 @@ MainWindow::CurrentMode MainWindow::GetMode() const
 std::size_t MainWindow::GetTab() const
 {
 	return m_tab;
+}
+
+const Sort::Settings& MainWindow::GetSortSettings() const
+{
+	return m_dir->GetSettings().SortSettings;
+}
+
+void MainWindow::SetSortSettings(const Sort::Settings& settings)
+{
+	auto dirSettings = m_dir->GetSettings();
+	auto parentSettings = m_parent->GetSettings();
+
+	dirSettings.SortSettings = settings;
+	parentSettings.SortSettings = settings;
+
+	m_dir->SetSettings(dirSettings);
+	m_parent->SetSettings(parentSettings);
+
+	m_dir->Sort(true);
+	m_parent->Sort(true);
 }
 
 

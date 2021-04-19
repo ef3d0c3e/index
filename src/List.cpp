@@ -125,10 +125,10 @@ std::pair<TBStyle, TBStyle> List::DrawFn(std::size_t i, Vec2i pos, int w, bool h
 			}
 		}
 
-		p += Draw::TextLine(tbs, pos+Vec2i(p,0), w2-p, trailChar).first;
+		p += Draw::TextLine(tbs, pos+Vec2i(p,0), w2-p, {trailing, style(c.name)}).first;
 	}
 	else
-		p += Draw::TextLine(f.name, style(c.name), pos+Vec2i(p,0), w2-p, trailChar).first;
+		p += Draw::TextLine(f.name, style(c.name), pos+Vec2i(p,0), w2-p, {trailing, style(c.name)}).first;
 	if (ts & TextStyle::Underline)
 		ts = static_cast<int>(ts & (~TextStyle::Underline));
 
@@ -416,10 +416,35 @@ void List::UpdateFromDir(bool preservePos)
 	}();
 
 	// Sort
-	using namespace std::placeholders;
-	std::sort(m_files.begin(), m_files.end(), std::bind(SortFns[m_settings.SortSettings.SortFn].first, _1, _2, m_settings.SortSettings));
+	Sort(false);
 
 	SetEntries(Size());
+
+	if (preservePos)
+	{
+		const auto pos = Find(current.name, current.mode);
+		if (pos == static_cast<std::size_t>(-1))
+			ActionSetPosition(0);
+		else
+			ActionSetPosition(pos);
+	}
+}
+
+void List::Sort(bool preservePos)
+{
+	File current;
+	if (preservePos)
+		current = *m_files[GetPos()].first; // copy
+
+	// Sort
+	using namespace std::placeholders;
+	if (m_settings.SortSettings.Reverse) [[unlikely]]
+		std::sort(m_files.begin(), m_files.end(), [this]<class T>(const T& a, const T& b) -> bool
+		{
+			return !SortFns[m_settings.SortSettings.SortFn](a, b, m_settings.SortSettings);
+		});
+	else [[likely]]
+		std::sort(m_files.begin(), m_files.end(), std::bind(SortFns[m_settings.SortSettings.SortFn], _1, _2, m_settings.SortSettings));
 
 	if (preservePos)
 	{

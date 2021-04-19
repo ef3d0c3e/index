@@ -106,8 +106,8 @@ const static auto CompiledIcons = []()
 	);
 
 	static const auto FullnameFiles = Util::make_array(
-		Ft2{U""sv, {0xB0A070}, TextStyle::None, {U"LICENSE"sv}},
-		Ft2{U""sv, {0xB0A070}, TextStyle::None, {U"Makefile"sv, U"CMakeLists.txt"sv}}
+		Ft2{U" "sv, {0xB0A070}, TextStyle::None, {U"LICENSE"sv}},
+		Ft2{U" "sv, {0xB0A070}, TextStyle::None, {U"Makefile"sv, U"CMakeLists.txt"sv}}
 	);
 
 	static const auto Extensions = Util::make_array(

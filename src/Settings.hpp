@@ -218,7 +218,7 @@ namespace Settings
 
 			constexpr TBStyle owner{0x9080F0, background.s.bg, TextStyle::Bold};
 			constexpr TBStyle group{0x9080F0, background.s.bg, TextStyle::Bold};
-			constexpr TBStyle date{0xF08010, background.s.bg, TextStyle::Underline};
+			constexpr TBStyle date{0xF08010, background.s.bg, TextStyle::None};
 
 			constexpr TBStyle link_arrow{0x90F0F0, background.s.bg, TextStyle::Bold};
 			constexpr TBStyle link_invalid_arrow{0xFFA0A0, background.s.bg, TextStyle::Bold};
@@ -262,6 +262,13 @@ namespace Settings
 
 			constexpr TBStyle change_menu_categories{0xFFFFFF, 0x202020, TextStyle::Bold};
 			constexpr TBStyle change_menu{0xCFCFCF, COLOR_DEFAULT, TextStyle::None};
+
+			constexpr TBStyle sort_menu_categories{0xFFFFFF, 0x202020, TextStyle::Bold};
+			constexpr TBStyle sort_menu{0xCFCFCF, COLOR_DEFAULT, TextStyle::None};
+			const TBString sort_menu_none{U"", {0xCFCFCF, COLOR_DEFAULT, TextStyle::None}};
+			const TBString sort_menu_true{U"true", {0x5777FF, COLOR_DEFAULT, TextStyle::Bold}};
+			const TBString sort_menu_false{U"false", {0xFF5777, COLOR_DEFAULT, TextStyle::Bold}};
+			const TBString sort_menu_selected{U"X", {0x40F090, COLOR_DEFAULT, TextStyle::Bold}};
 		}
 
 		namespace Marks
@@ -373,6 +380,19 @@ namespace Settings
 			constexpr Char name_empty[] = U"c S-W";
 		}
 
+		namespace Sort
+		{
+			constexpr Char menu[]           = U"o";
+			constexpr Char sort_basename[]  = U"o b";
+			constexpr Char sort_size[]      = U"o s";
+			constexpr Char sort_atime[]     = U"o a";
+			constexpr Char sort_mtime[]     = U"o m";
+			constexpr Char sort_ext[]       = U"o e";
+			constexpr Char reverse[]        = U"o r";
+			constexpr Char dir_first[]      = U"o d";
+			constexpr Char case_sensitive[] = U"o i";
+		}
+
 		namespace Cache
 		{
 			constexpr Char cache[] = U"d c";
@@ -391,13 +411,8 @@ namespace Settings
 	namespace Cache
 	{
 		constexpr std::size_t cache_num = 1<<8; ///< Maximum number of (unused) cached directories at once
-		constexpr std::size_t update_age = -1;  ///< Update from filesystem if older than (-1 means to not update) (in seconds)
+		constexpr Time update_age = -1;  ///< Update from filesystem if older than (-1 means to not update) (in seconds)
 	}
 }
-
-constexpr auto SortFns = Util::make_array
-(
-	std::make_pair(Sort::Basename, U"basename")
-);
 
 #endif // INDEX_SETTINGS_HPP

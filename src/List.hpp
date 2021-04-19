@@ -95,6 +95,12 @@ public:
 	void UpdateFromDir(bool preservePos = false);
 
 	////////////////////////////////////////////////
+	/// \brief Run sorting
+	/// \param preservePos Attempts to set the position so that it corresponds to the same file
+	////////////////////////////////////////////////
+	void Sort(bool preservePos = false);
+
+	////////////////////////////////////////////////
 	/// \brief Will get the informations from the filesystem
 	/// Will call ```UpdateFromDir```
 	/// \param preservePos Attempts to set the position so that it corresponds to the same file

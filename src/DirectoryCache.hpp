@@ -30,7 +30,7 @@ private:
 
 	////////////////////////////////////////////////
 	/// \brief Tries to reduce the size of the cache
-	/// Will only delete directory with a ```refCount``` of 0
+	/// Will only delete directories with a ```refCount``` of 0
 	/// Will prefer deleting the least recently updated directories
 	////////////////////////////////////////////////
 	void Optimize();

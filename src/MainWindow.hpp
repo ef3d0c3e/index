@@ -10,6 +10,7 @@ class Menu;
 class MarksMenu;
 class Prompt;
 class CacheExplorer;
+class SortMenu;
 
 class DummyInput : public Widget
 {
@@ -30,7 +31,14 @@ public:
 		MARKS, 1, // Marks mode
 		CACHE_EXPLORER, 2, // Cache explorer mode
 	);
+
+	struct MainSettings
+	{
+		bool showParent = true;
+	};
 private:
+	MainSettings m_settings;
+
 	DummyInput* dInput;
 
 	List* m_dir;
@@ -51,6 +59,9 @@ private:
 
 	Menu* m_changeMenu;
 	std::size_t m_changeMenuId;
+
+	SortMenu* m_sortMenu;
+	std::size_t m_sortMenuId;
 
 	MarksMenu* m_marks;
 	std::size_t m_marksId;
@@ -75,6 +86,13 @@ private:
 
 	// Setting:
 	bool m_parentEnabled;
+
+	////////////////////////////////////////////////
+	/// \brief Returns wether or not to show the parent pane
+	/// Will take in account the current directory & the settings
+	/// \returns true if the parent pane should be shown, false otherwise
+	////////////////////////////////////////////////
+	bool ShouldShowParent() const;
 
 	void OnChangeDir();
 
@@ -125,6 +143,19 @@ public:
 	{
 		return m_tablineId;
 	}
+
+	////////////////////////////////////////////////
+	/// \brief Gets the sort settings
+	/// \returns The sort settings
+	////////////////////////////////////////////////
+	const Sort::Settings& GetSortSettings() const;
+
+	////////////////////////////////////////////////
+	/// \brief Sets the sort settings
+	/// \note Will run ```Directory::Sort``` on the directories to sort
+	/// \param settings The sort settings
+	////////////////////////////////////////////////
+	void SetSortSettings(const Sort::Settings& settings);
 
 	////////////////////////////////////////////////
 	/// \brief Gets the current path

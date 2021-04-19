@@ -6,16 +6,6 @@ class MainWindow;
 
 typedef decltype(errno) Error;
 
-namespace Sort
-{
-struct Settings
-{
-	bool DirFist = true;
-	bool CaseSensitive = false;
-	std::size_t SortFn = 0;
-};
-}
-
 MAKE_CENUM_Q(Mode, std::uint8_t,
 	UNK,  0,
 	NONE, 1<<0,
