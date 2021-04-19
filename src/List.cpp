@@ -176,6 +176,14 @@ void List::ActionRight()
 		const auto [openType, opener] = Actions::GetOpener(f, m_dir->GetPath());
 		if (openType == Actions::OpenType::Executable)
 			Actions::Open(f, m_dir->GetPath(), *opener);
+		else
+		{
+			m_main->ActionPrompt([&](const String& input)
+			{
+				if (!Actions::CustomOpen(f, m_dir->GetPath(), Util::StringConvert<char>(input)))
+					m_main->Error(U"Invalid format", std::chrono::seconds(2));
+			}, Settings::Style::List::open_prompt_prefix, Settings::Style::List::open_prompt_background, Settings::Style::List::open_prompt_max_length, U" {}", 0);
+		}
 	}
 }
 
@@ -365,7 +373,7 @@ std::size_t List::Size() const
 void List::UpdateFromDir(bool preservePos)
 {
 	File current;
-	if (preservePos)
+	if (preservePos && !m_files.empty())
 		current = *m_files[GetPos()].first; // copy
 
 	[&] // Filter
@@ -420,7 +428,7 @@ void List::UpdateFromDir(bool preservePos)
 
 	SetEntries(Size());
 
-	if (preservePos)
+	if (preservePos && !m_files.empty())
 	{
 		const auto pos = Find(current.name, current.mode);
 		if (pos == static_cast<std::size_t>(-1))
@@ -433,7 +441,7 @@ void List::UpdateFromDir(bool preservePos)
 void List::Sort(bool preservePos)
 {
 	File current;
-	if (preservePos)
+	if (preservePos && !m_files.empty())
 		current = *m_files[GetPos()].first; // copy
 
 	// Sort
@@ -446,7 +454,7 @@ void List::Sort(bool preservePos)
 	else [[likely]]
 		std::sort(m_files.begin(), m_files.end(), std::bind(SortFns[m_settings.SortSettings.SortFn], _1, _2, m_settings.SortSettings));
 
-	if (preservePos)
+	if (preservePos && !m_files.empty())
 	{
 		const auto pos = Find(current.name, current.mode);
 		if (pos == static_cast<std::size_t>(-1))

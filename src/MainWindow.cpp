@@ -134,6 +134,7 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 	m_promptId = AddWidget(m_prompt);
 	m_prompt->OnStopShowing.AddEvent([this](bool) {
 		RestoreAllActive(std::move(m_promptStateList));
+		// Dont Invalidate() because we want to be able to display error in the StatusLine
 		Invalidate();
 		Termbox::GetContext().noRepeat = false;
 	}, EventWhen::AFTER);
@@ -598,9 +599,9 @@ const List* MainWindow::GetParentList() const
 	return m_parent;
 }
 
-void MainWindow::Error(const String& msg)
+void MainWindow::Error(const String& msg, std::chrono::duration<std::size_t> secs)
 {
-	m_statusline->DrawError(msg);
+	m_statusline->SetError(msg, secs);
 }
 
 void MainWindow::CD(const std::string& path)
@@ -703,4 +704,23 @@ void MainWindow::SetSortSettings(const Sort::Settings& settings)
 const std::string& MainWindow::GetCurrentPath() const
 {
 	return m_dir->GetDir()->GetPath();
+}
+
+
+void MainWindow::ActionPrompt(std::function<void(const String&)> callback, const TBString& prefix, const TBChar& bg, std::size_t max, const String& input, std::size_t position)
+{
+	m_promptStateList = SetAllInactive(); // Stores all the widgets after disabling them
+										  // The prompt will automatically restore them after exiting
+	m_prompt->SetPrefix(prefix);
+	m_prompt->SetBackground(bg);
+	m_prompt->SetText(input);
+	m_prompt->SetPos(position);
+	m_prompt->ActionShow();
+	Termbox::GetContext().noRepeat = true;
+
+	m_prompt->OnStopShowing.AddEvent([this, callback](bool v){
+		if (!v)
+			return;
+		callback(m_prompt->GetText());
+	}, EventWhen::AFTER_ONCE);
 }

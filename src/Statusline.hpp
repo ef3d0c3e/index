@@ -2,6 +2,7 @@
 #define INDEX_STATUSLINE_HPP
 
 #include "MainWindow.hpp"
+#include <chrono>
 
 class Statusline : public Widget
 {
@@ -9,7 +10,9 @@ class Statusline : public Widget
 	TBChar m_bg;
 
 	virtual void Draw();
-	bool m_error;
+
+	std::chrono::time_point<std::chrono::system_clock> m_errorStop;
+	String m_errorMsg;
 public:
 	Statusline(MainWindow* main);
 	~Statusline();
@@ -17,7 +20,12 @@ public:
 	void SetBackground(const TBChar& bg);
 	const TBChar& GetBackground() const;
 
-	void DrawError(const String& msg);
+	////////////////////////////////////////////////
+	/// \brief Display an error in the status line
+	/// \param msg The error message
+	/// \param secs The message's duration in seconds
+	////////////////////////////////////////////////
+	void SetError(const String& msg, std::chrono::duration<std::size_t> secs);
 };
 
 #endif // INDEX_STATUSLINE_HPP

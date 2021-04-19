@@ -29,6 +29,12 @@ public:
 	void SetText(const String& text);
 	const String& GetText() const;
 
+	////////////////////////////////////////////////
+	/// \brief Sets the start position in the prompt
+	/// \param pos The position (<= m_text.size())
+	////////////////////////////////////////////////
+	void SetPos(std::size_t pos);
+
 	void SetBackground(const TBChar& bg);
 	const TBChar& GetBackground() const;
 

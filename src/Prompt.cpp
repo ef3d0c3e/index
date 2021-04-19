@@ -228,6 +228,12 @@ const String& Prompt::GetText() const
 	return m_text;
 }
 
+void Prompt::SetPos(std::size_t pos)
+{
+	m_position = pos;
+	m_cursorPos = Util::SizeWide(m_text.substr(0, pos));
+}
+
 
 void Prompt::SetBackground(const TBChar& bg)
 {

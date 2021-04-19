@@ -118,7 +118,13 @@ public:
 	const List* GetList() const;
 	const List* GetParentList() const;
 
-	void Error(const String& msg);
+	////////////////////////////////////////////////
+	/// \brief Draws an error message in the status line
+	/// \param msg The error message
+	/// \param secs The message's duration in seconds
+	////////////////////////////////////////////////
+	void Error(const String& msg, std::chrono::duration<std::size_t> secs = std::chrono::seconds(5));
+
 	void CD(const std::string& path);
 
 	////////////////////////////////////////////////
@@ -162,6 +168,17 @@ public:
 	/// \returns The current path
 	////////////////////////////////////////////////
 	const std::string& GetCurrentPath() const;
+
+	////////////////////////////////////////////////
+	/// \brief Displays the prompt
+	/// \param callback The callback
+	/// \param prefix The prompt's prefix
+	/// \param bg The prompt's background
+	/// \param input The prompt input
+	/// \param position The start position in the input
+	/// \returns A pair <true if the user submitted, false if cancelled, the output>
+	////////////////////////////////////////////////
+	void ActionPrompt(std::function<void(const String&)> callback, const TBString& prefix, const TBChar& bg, std::size_t max, const String& input = U"", std::size_t position = 0);
 };
 
 #endif // INDEX_MAINWINDOW_HPP

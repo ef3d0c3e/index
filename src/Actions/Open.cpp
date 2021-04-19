@@ -46,8 +46,8 @@ bool Actions::Openers::isText(const File& f, const std::string& path, const std:
 		return false;
 
 	// Executables
-	if (ext == "out"
-		|| (ext == "" && (f.perm & Permission::UX) ))
+	if ((ext == "" && (f.perm & Permission::UX))
+		|| ext == "out")
 		return false;
 
 	return true;
@@ -81,6 +81,8 @@ std::pair<Actions::OpenType, const Actions::Opener*> Actions::GetOpener(const Fi
 
 void Actions::Open(const File& f, const std::string& path, const Opener& opener)
 {
+	const std::string command = opener.GetCommand(f, path);
+
 	int status = 0;
 	pid_t pid = fork();
 	if (pid == -1)
@@ -105,14 +107,13 @@ void Actions::Open(const File& f, const std::string& path, const Opener& opener)
 		if (opener.flag & Opener::SetSid)
 			setsid();
 
-		execlp("/bin/sh", "sh", "-c", opener.GetCommand(f, path).c_str(), (char*)0);
+		execlp("/bin/sh", "sh", "-c", command.c_str(), (char*)0);
 		exit(1);
 	}
 	else // parent
 	{
 		if (opener.flag & Opener::Close)
 		{
-			std::cout << "waiting...";
 			waitpid(pid, &status, 0);
 			Termbox::ReOpen();
 		}

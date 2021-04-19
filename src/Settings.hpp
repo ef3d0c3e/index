@@ -166,6 +166,11 @@ namespace Settings
 				TBString{U"*", {0xC04040, main_window_background.s.bg, TextStyle::Bold}}, // TAGGED
 				TBString{U"*", {0xF0D040, main_window_background.s.bg, TextStyle::Bold}} // FAV
 			);
+
+			// Open prompt
+			const static TBString open_prompt_prefix{U"open: ", {0x00A0F0, main_window_background.s.bg, TextStyle::Bold}};
+			constexpr TBChar open_prompt_background{U' ', {0xFFFFFF, main_window_background.s.bg, TextStyle::None}};
+			constexpr std::size_t open_prompt_max_length = 1<<10;
 		}
 		
 		namespace Tabline

@@ -7,9 +7,22 @@
 
 void Statusline::Draw()
 {
-	if (m_error)
+	if (std::chrono::system_clock::now() < m_errorStop) // Draw error message
 	{
-		m_error = false;
+		auto x = GetPosition()[0];
+		// Spacing
+		{
+			Draw::Char({m_bg.ch, Settings::Style::Statusline::error}, Vec2i(x, GetPosition()[1]));
+			x += wcwidth(m_bg.ch);
+		}
+
+		// Text
+		{
+			x += Draw::TextLine(m_errorMsg, Settings::Style::Statusline::error, Vec2i(x, GetPosition()[1]), GetSize()[0],
+					{Settings::Layout::trailing_character, Settings::Style::Statusline::error}).first;
+			Draw::Horizontal({m_bg.ch, Settings::Style::Statusline::error}, GetPosition()+Vec2i(x, 0), GetSize()[0]-x);
+		}
+
 		return;
 	}
 
@@ -202,29 +215,11 @@ void Statusline::Draw()
 	}
 }
 
-void Statusline::DrawError(const String& msg)
-{
-	m_error = true;
-
-	auto x = GetPosition()[0];
-	// Spacing
-	{
-		Draw::Char({m_bg.ch, Settings::Style::Statusline::error}, Vec2i(x, GetPosition()[1]));
-		x += wcwidth(m_bg.ch);
-	}
-
-	// Text
-	{
-		x += Draw::TextLine(msg, Settings::Style::Statusline::error, Vec2i(x, GetPosition()[1]), GetSize()[0],
-				{Settings::Layout::trailing_character, Settings::Style::Statusline::error}).first;
-		Draw::Horizontal({m_bg.ch, Settings::Style::Statusline::error}, GetPosition()+Vec2i(x, 0), GetSize()[0]-x);
-	}
-}
-
 Statusline::Statusline(MainWindow* main):
 	m_main(main),
 	m_bg(Settings::Style::Statusline::background),
-	m_error(false)
+	m_errorStop(std::chrono::system_clock::now()),
+	m_errorMsg(U"")
 {
 }
 
@@ -243,3 +238,8 @@ const TBChar& Statusline::GetBackground() const
 	return m_bg;
 }
 
+void Statusline::SetError(const String& msg, std::chrono::duration<std::size_t> secs)
+{
+	m_errorMsg = msg;
+	m_errorStop = std::chrono::system_clock::now() + secs;
+}
