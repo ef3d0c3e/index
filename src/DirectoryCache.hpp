@@ -2,6 +2,7 @@
 #define INDEX_DIRECTORYCACHE_HPP
 
 #include "FileSystem.hpp"
+#include <chrono>
 
 class DirectoryCache
 {
@@ -13,7 +14,7 @@ public:
 		////////////////////////////////////////////////
 
 		Directory* dir = nullptr; ///< The cached directory. If nullptr, then The directory referred by this node is not cached...
-		Time updated; ///< The time this node was last updated
+		std::chrono::time_point<std::chrono::system_clock> updated; ///< The time this node was last updated
 		std::size_t refCount = 0; ///< Number of references to this directory
 	};
 
@@ -35,7 +36,13 @@ private:
 	////////////////////////////////////////////////
 	void Optimize();
 public:
+	////////////////////////////////////////////////
+	/// \brief Default Constructor
+	////////////////////////////////////////////////
 	DirectoryCache();
+	////////////////////////////////////////////////
+	/// \brief Desctructor
+	////////////////////////////////////////////////
 	~DirectoryCache();
 
 	////////////////////////////////////////////////

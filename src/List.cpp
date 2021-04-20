@@ -521,6 +521,11 @@ Directory* List::GetDir()
 	return m_dir;
 }
 
+const Directory* List::GetDir() const
+{
+	return m_dir;
+}
+
 void List::SetDir(Directory* dir)
 {
 	m_dir = dir;
@@ -555,7 +560,7 @@ std::size_t List::Find(const String& name, Mode mode, std::size_t beg) const
 
 std::size_t List::FindByName(const String& name) const
 {
-	for (std::size_t i; i < m_files.size(); ++i)
+	for (std::size_t i = 0; i < m_files.size(); ++i)
 	{
 		const File& f = *m_files[i].first;
 
@@ -568,3 +573,10 @@ std::size_t List::FindByName(const String& name) const
 	return static_cast<std::size_t>(-1);
 }
 
+String List::GetCurrentFileName() const
+{
+	if (Size() == 0)
+		return U"";
+
+	return Get(GetPos()).first.name;
+}

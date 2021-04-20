@@ -56,7 +56,7 @@ std::pair<Directory*, bool> DirectoryCache::GetDirectory(const std::string& path
 		auto dir = new Directory(resolved);
 		m_cache.insert(std::make_pair(dir->GetPath(), DirectoryCache::Cached{
 			.dir = dir,
-			.updated = time(NULL),
+			.updated = std::chrono::system_clock::now(),
 			.refCount = 1,
 		}));
 
@@ -64,7 +64,7 @@ std::pair<Directory*, bool> DirectoryCache::GetDirectory(const std::string& path
 		return std::make_pair(dir, false);
 	}
 
-	bool shouldUpdate = time(NULL)-cached->updated > Settings::Cache::update_age;
+	bool shouldUpdate = std::chrono::system_clock::now()-cached->updated > Settings::Cache::update_age;
 
 	++cached->refCount;
 	return std::make_pair(cached->dir, shouldUpdate);

@@ -126,11 +126,27 @@ namespace Settings
 				.Cycling = true,
 			};
 
-			constexpr std::size_t date_max_size = 32;
-			constexpr char date_format[] = "(%H:%M:%S)";
-			constexpr Char unknown_date[] = U"???";
-
+			constexpr StringView date_format = U"({:%H:%M:%S})";
 			constexpr Char ref_count_format[] = U"[{0}]";
+		}
+
+		namespace Position
+		{
+			constexpr Widgets::ListSelectSettings settings{
+				.ScrollTriggerUp = 20,
+				.ScrollTriggerDown = 20,
+				.LeftMargin = 1,
+				.NumberSpacing = 1,
+				.RightMargin = 1,
+				.NumberBase = 10,
+				.DrawNumbers = true,
+				.RelativeNumbers = true,
+				.NumberRightAlign = true,
+				.TrailingChar = U'~',
+				.Cycling = true,
+			};
+
+			constexpr StringView date_format = U"({:%H:%M:%S})";
 		}
 
 		// * Posix
@@ -232,12 +248,13 @@ namespace Settings
 
 			constexpr TBStyle error{0xF05040, background.s.bg, TextStyle::Bold};
 
-			const static std::array<TBString, 3> modes = {
+			const static std::array<TBString, 4> modes = {
 				// Regular modes
 				TBString{U" LIST ", {background.s.bg, 0xF07040, TextStyle::Bold}},
 				TBString{U" MARKS ", {background.s.bg, 0xF07040, TextStyle::Bold}},
 				// Debug modes
 				TBString{U" CACHE ", {background.s.bg, 0xD080D0, TextStyle::Bold}},
+				TBString{U" POSITIONS ", {background.s.bg, 0xD080D0, TextStyle::Bold}},
 			};
 		}
 
@@ -321,8 +338,20 @@ namespace Settings
 			constexpr TBStyle path{0x40D0F0, background.s.bg, TextStyle::Bold};
 			constexpr TBStyle path_hovered{background.s.bg, 0x40D0F0, TextStyle::Bold};
 
+			constexpr TBStyle numbers{0xF0C000, background.s.bg, TextStyle::None}; // Background will be ignored
 			constexpr TBStyle ref_count{0x904040, background.s.bg, TextStyle::Bold}; // Background will be ignored
 			constexpr TBStyle update{0x404090, background.s.bg, TextStyle::Bold}; // Background will be ignored
+		}
+
+		namespace Position
+		{
+			constexpr TBChar background{U' ', 0xFFFFFF, COLOR_DEFAULT};
+			constexpr TBStyle path{0x40D0F0, background.s.bg, TextStyle::Bold};
+			constexpr TBStyle path_hovered{background.s.bg, 0x40D0F0, TextStyle::Bold};
+
+			constexpr TBStyle numbers{0xF0C000, background.s.bg, TextStyle::None}; // Background will be ignored
+			constexpr TBStyle selected{0xF04090, background.s.bg, TextStyle::Bold}; // Background will be ignored
+			constexpr TBStyle last_accessed{0x404090, background.s.bg, TextStyle::Bold}; // Background will be ignored
 		}
 	}
 
@@ -422,6 +451,12 @@ namespace Settings
 			constexpr Char exit[] = U"ESC";
 		}
 
+		namespace Position
+		{
+			constexpr Char position[] = U"d p";
+			constexpr Char exit[] = U"ESC";
+		}
+
 		constexpr Char filter[] = U"f";
 	}
 
@@ -434,7 +469,12 @@ namespace Settings
 	namespace Cache
 	{
 		constexpr std::size_t cache_num = 1<<8; ///< Maximum number of (unused) cached directories at once
-		constexpr Time update_age = -1;  ///< Update from filesystem if older than (-1 means to not update) (in seconds)
+		constexpr std::chrono::duration<std::size_t> update_age(std::chrono::seconds(3600));  ///< Update from filesystem if older than (in seconds)
+	}
+
+	namespace Position
+	{
+		constexpr std::size_t cache_num = 1<<8; ///< Maximum number of cached positions (per Tab)
 	}
 }
 

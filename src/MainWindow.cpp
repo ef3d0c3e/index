@@ -8,11 +8,13 @@
 #include "Prompt.hpp"
 #include "DirectoryCache.hpp"
 #include "UI/CacheExplorer.hpp"
+#include "UI/PositionExplorer.hpp"
 #include "UI/SortMenu.hpp"
 #include "UI/ShellMenu.hpp"
 
 MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 	Window::Window({U"", Settings::Style::default_text_style}),
+	m_positionCache(),
 	m_currentMode(CurrentMode::NORMAL),
 	m_tab(tabId),
 	m_sortFn(0),
@@ -436,6 +438,17 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 	m_cacheExplorer->AddKeyboardInput(Settings::Keys::Cache::cache, [this](){ SetMode(CurrentMode::NORMAL); });
 	// }}}
 
+	// {{{ Positions
+	// * PositionsExplorer
+	m_positionExplorer = new PositionExplorer(this);
+	m_positionExplorer->SetVisible(false);
+	m_positionExplorer->SetActive(false);
+	m_positionExplorerId = AddWidget(m_positionExplorer);
+
+	dInput->AddKeyboardInput(Settings::Keys::Position::position, [this](){ SetMode(CurrentMode::POSITION_EXPLORER); });
+	m_positionExplorer->AddKeyboardInput(Settings::Keys::Position::position, [this](){ SetMode(CurrentMode::NORMAL); });
+	// }}}
+
 	m_dir->UpdateFromDir();
 	m_parent->UpdateFromDir();
 
@@ -513,6 +526,10 @@ void MainWindow::Resize(Vec2i dim)
 	m_cacheExplorer->SetPosition(Vec2i(0, 1));
 	m_cacheExplorer->SetSize(Vec2i(w, h-2));
 
+	// PositionExplorer
+	m_positionExplorer->SetPosition(Vec2i(0, 1));
+	m_positionExplorer->SetSize(Vec2i(w, h-2));
+
 	// Prompt
 	m_prompt->SetPosition(Vec2i(0, h-2));
 	m_prompt->SetSize(Vec2i(w, 1));
@@ -552,8 +569,10 @@ void MainWindow::OnChangeDir()
 
 void MainWindow::Forward(const String& folder)
 {
-	// Marks
+	// Marks & Position
 	m_marks->AddMarks(m_dir->GetDir());
+	if (m_parent->GetDir()->GetPath() != "/")
+		m_positionCache.AddPosition(m_parent);
 
 	// Parent := Dir
 	gDirectoryCache.DeleteDirectory(m_parent->GetDir());
@@ -563,7 +582,7 @@ void MainWindow::Forward(const String& folder)
 	// Dir := ...
 	m_dir->SetDir(gDirectoryCache.GetDirectory(m_dir->GetDir()->GetPath() + "/" + Util::StringConvert<char>(folder)).first);
 	m_dir->UpdateFromDir();
-	m_dir->ActionSetPosition(0);
+	m_dir->ActionSetPosition(m_positionCache.GetPosition(m_dir));
 
 	OnChangeDir();
 }
@@ -572,6 +591,7 @@ void MainWindow::Back()
 {
 	// Marks
 	m_marks->AddMarks(m_dir->GetDir());
+	m_positionCache.AddPosition(m_dir);
 
 	// Dir := Parent
 	gDirectoryCache.DeleteDirectory(m_dir->GetDir());
@@ -613,6 +633,7 @@ void MainWindow::CD(const std::string& path)
 {
 	// Marks
 	m_marks->AddMarks(m_dir->GetDir());
+	m_positionCache.AddPosition(m_dir);
 
 	gDirectoryCache.DeleteDirectory(m_dir->GetDir());
 	gDirectoryCache.DeleteDirectory(m_parent->GetDir());
@@ -623,7 +644,7 @@ void MainWindow::CD(const std::string& path)
 	m_dir->UpdateFromDir(false);
 	m_parent->UpdateFromDir(false);
 
-	m_dir->ActionSetPosition(0);
+	m_dir->ActionSetPosition(m_positionCache.GetPosition(m_dir));
 
 	// Find the previous dir
 	const auto pos = m_parent->Find(
@@ -651,6 +672,8 @@ void MainWindow::SetMode(CurrentMode mode)
 	m_marks->SetActive(false);
 	m_cacheExplorer->SetVisible(false);
 	m_cacheExplorer->SetActive(false);
+	m_positionExplorer->SetVisible(false);
+	m_positionExplorer->SetActive(false);
 
 	// Normal
 	switch (mode)
@@ -668,6 +691,10 @@ void MainWindow::SetMode(CurrentMode mode)
 		case CurrentMode::CACHE_EXPLORER:
 			m_cacheExplorer->SetVisible(true);
 			m_cacheExplorer->SetActive(true);
+			break;
+		case CurrentMode::POSITION_EXPLORER:
+			m_positionExplorer->SetVisible(true);
+			m_positionExplorer->SetActive(true);
 			break;
 	}
 	m_currentMode = mode;
@@ -735,8 +762,5 @@ void MainWindow::ActionPrompt(std::function<void(const String&)> callback, const
 
 String MainWindow::GetCurrentFileName() const
 {
-	if (m_dir->Size() == 0)
-		return U"";
-
-	return m_dir->Get(m_dir->GetPos()).first.name;
+	return m_dir->GetCurrentFileName();
 }

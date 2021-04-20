@@ -114,6 +114,7 @@ public:
 	/// \see Directory
 	////////////////////////////////////////////////
 	Directory* GetDir();
+	const Directory* GetDir() const;
 
 	////////////////////////////////////////////////
 	/// \brief Sets the Directory
@@ -156,6 +157,12 @@ public:
 	/// \returns The index of the file if found, std::size_t(-1) otherwise
 	////////////////////////////////////////////////
 	std::size_t FindByName(const String& name) const;
+
+	////////////////////////////////////////////////
+	/// \brief Get the current file's name
+	/// \returns The name of the current file (or U"" if none)
+	////////////////////////////////////////////////
+	String GetCurrentFileName() const;
 };
 
 #endif // INDEX_LIST_HPP

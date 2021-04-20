@@ -1,17 +1,17 @@
-#ifndef INDEX_UI_CACHEEXPLORER_HPP
-#define INDEX_UI_CACHEEXPLORER_HPP
+#ifndef INDEX_UI_POSITIONEXPLORER_HPP
+#define INDEX_UI_POSITIONEXPLORER_HPP
 
 #include "../TermboxWidgets/Widgets.hpp"
 #include "../Settings.hpp"
-#include "../DirectoryCache.hpp"
+#include "../PositionCache.hpp"
 
 class MainWindow;
-typedef Widgets::ListSelect<Settings::Layout::Cache::settings, MarkType> CacheExplorerBase;
+typedef Widgets::ListSelect<Settings::Layout::Position::settings, MarkType> PositionExplorerBase;
 
-class CacheExplorer : public CacheExplorerBase
+class PositionExplorer : public PositionExplorerBase
 {
 ////////////////////////////////////////////////
-/// \brief Class that will help display informations about the cache state
+/// \brief Class that will help display informations about the position cache state
 ////////////////////////////////////////////////
 	MainWindow* m_main;
 
@@ -20,17 +20,19 @@ class CacheExplorer : public CacheExplorerBase
 
 	// Some optimization for iterating over std::map
 	std::size_t m_last_i;
-	std::map<std::string, DirectoryCache::Cached>::iterator m_it;
+	std::map<std::string, PositionCache::Entry>::iterator m_it;
 public:
+
 	////////////////////////////////////////////////
 	/// \brief Constructor
 	/// \param main The MainWindow tied to tthe widget
 	////////////////////////////////////////////////
-	CacheExplorer(MainWindow* main);
+	PositionExplorer(MainWindow* main);
 	////////////////////////////////////////////////
 	/// \brief Destructor
 	////////////////////////////////////////////////
-	~CacheExplorer();
+	~PositionExplorer();
 };
 
-#endif // INDEX_UI_CACHEEXPLORER_HPP
+
+#endif // INDEX_UI_POSITIONEXPLORER_HPP

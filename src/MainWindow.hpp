@@ -3,6 +3,7 @@
 
 #include "TermboxWidgets/Window.hpp"
 #include "Sort.hpp"
+#include "PositionCache.hpp"
 class List;
 class Tabline;
 class Statusline;
@@ -10,6 +11,7 @@ class Menu;
 class MarksMenu;
 class Prompt;
 class CacheExplorer;
+class PositionExplorer;
 class SortMenu;
 class ShellMenu;
 
@@ -24,6 +26,7 @@ public:
 class MainWindow : public Window
 {
 	friend class CacheExplorer;
+	friend class PositionExplorer;
 	friend class MarksMenu;
 
 public:
@@ -31,6 +34,7 @@ public:
 		NORMAL, 0, // Default mode (directory list)
 		MARKS, 1, // Marks mode
 		CACHE_EXPLORER, 2, // Cache explorer mode
+		POSITION_EXPLORER, 3, // Position cache explorer mode
 	);
 
 	struct MainSettings
@@ -39,6 +43,7 @@ public:
 	};
 private:
 	MainSettings m_settings;
+	PositionCache m_positionCache;
 
 	DummyInput* dInput;
 
@@ -72,6 +77,9 @@ private:
 
 	CacheExplorer* m_cacheExplorer;
 	std::size_t m_cacheExplorerId;
+
+	PositionExplorer* m_positionExplorer;
+	std::size_t m_positionExplorerId;
 
 	CurrentMode m_currentMode;
 
@@ -185,7 +193,7 @@ public:
 	void ActionPrompt(std::function<void(const String&)> callback, const TBString& prefix, const TBChar& bg, std::size_t max, const String& input = U"", std::size_t position = 0);
 
 	////////////////////////////////////////////////
-	/// \brief GEt the current file's name
+	/// \brief Get the current file's name
 	/// \returns The name of the current file (or U"" if none)
 	////////////////////////////////////////////////
 	String GetCurrentFileName() const;

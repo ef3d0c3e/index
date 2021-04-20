@@ -44,11 +44,11 @@ namespace Actions
 	namespace Openers
 	{
 		const static Opener TextEditor("nvim {file}"s, Opener::Close);
-		const static Opener ImageViewer("feh {file}"s, Opener::SetSid);
+		const static Opener ImageViewer("feh {file}"s, Opener::SetSid | Opener::SupressOutput);
 		const static Opener AudioPlayer("mpv --no-video {file}"s, Opener::Close);
-		const static Opener VideoPlayer("mpv {file}"s, Opener::SetSid);
-		const static Opener PDFViewer("zathura {file}"s, Opener::SetSid);
-		const static Opener WebBrowser("x-www-browser {file}"s, Opener::SetSid);
+		const static Opener VideoPlayer("mpv {file}"s, Opener::SetSid | Opener::SupressOutput);
+		const static Opener PDFViewer("zathura {file}"s, Opener::SetSid | Opener::SupressOutput);
+		const static Opener WebBrowser("x-www-browser {file}"s, Opener::SetSid | Opener::SupressOutput);
 
 		const static Opener Gimp("gimp {file}"s, Opener::SetSid);
 
