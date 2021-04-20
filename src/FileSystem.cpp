@@ -20,7 +20,6 @@ Directory::Directory(const std::string& path):
 {
 	m_pathResolvedUnscaped = GetUsablePath(path);
 
-	//TODO: this is bad for error handling
 	GetFiles();
 }
 
@@ -214,80 +213,100 @@ std::size_t Directory::Find(const String& name, Mode mode, std::size_t beg) cons
 	return static_cast<std::size_t>(-1);
 }
 
-void Directory::Rename(MainWindow* main, const std::string& oldName, const std::string& newName)
+void Directory::Rename(const String& oldName, const String& newName)
 {
-	const int err = rename(oldName.c_str(), newName.c_str());
+	if (newName.find('/') != std::string::npos) [[unlikely]]
+		throw IndexError(U"Ill-formed name. Name contains a '/', which is not allowed!", IndexError::GENERIC_ERROR);
+
+	// Find position in current representation
+	std::size_t pos = static_cast<std::size_t>(-1);
+	for (std::size_t i = 0; i < m_oFiles.size(); ++i)
+	{
+		if (m_oFiles[i].name == oldName)
+		{
+			pos = i;
+			break;
+		}
+	}
+
+	const int err = rename(Util::StringConvert<char>(oldName).c_str(), Util::StringConvert<char>(newName).c_str());
 	if (err == -1)
 	{
 		// In theory, all error should concern newName only, as the user cannot choose oldName
-		const String fromTo = Util::StringConvert<Char>(fmt::format(Settings::Layout::error_rename_from_to, oldName, newName));
+		const String fromTo = fmt::format(Settings::Layout::error_rename_from_to, oldName, newName);
 		switch (errno)
 		{
 			case EACCES:
 			case EPERM:
-				main->Error(U"Cannot rename " + fromTo + U": permission denied");
+				throw IndexError(U"Cannot rename " + fromTo + U": permission denied", IndexError::GENERIC_ERROR);
 				break;
 			case EBUSY:
-				main->Error(U"Cannot rename " + fromTo + U": path busy");
+				throw IndexError(U"Cannot rename " + fromTo + U": path busy", IndexError::GENERIC_ERROR);
 				break;
 			case EDQUOT:
-				main->Error(U"Cannot rename " + fromTo + U": user's quota of disk blocks has been exhausted");
+				throw IndexError(U"Cannot rename " + fromTo + U": user's quota of disk blocks has been exhausted", IndexError::GENERIC_ERROR);
 				break;
 			case EFAULT:
-				main->Error(U"Cannot rename " + fromTo + U": path not in addressable space");
+				throw IndexError(U"Cannot rename " + fromTo + U": path not in addressable space", IndexError::GENERIC_ERROR);
 				break;
 			case EINVAL:
-				main->Error(U"Cannot rename " + fromTo + U": you attempted to make a subdirectory from itself");
+				throw IndexError(U"Cannot rename " + fromTo + U": you attempted to make a subdirectory from itself", IndexError::GENERIC_ERROR);
 				break;
 			case EISDIR:
-				main->Error(U"Cannot rename " + fromTo + U": not a directory");
+				throw IndexError(U"Cannot rename " + fromTo + U": not a directory", IndexError::GENERIC_ERROR);
 				break;
 			case ELOOP:
-				main->Error(U"Cannot rename " + fromTo + U": to many symlink");
+				throw IndexError(U"Cannot rename " + fromTo + U": to many symlink", IndexError::GENERIC_ERROR);
 				break;
 			case EMLINK:
-				main->Error(U"Cannot rename " + fromTo + U": the previous path has already too many links");
+				throw IndexError(U"Cannot rename " + fromTo + U": the previous path has already too many links", IndexError::GENERIC_ERROR);
 				break;
 			case ENAMETOOLONG:
-				main->Error(U"Cannot rename " + fromTo + U": name is too long");
+				throw IndexError(U"Cannot rename " + fromTo + U": name is too long", IndexError::GENERIC_ERROR);
 				break;
 			case ENOENT:
-				main->Error(U"Cannot rename " + fromTo + U": path does not exists");
+				throw IndexError(U"Cannot rename " + fromTo + U": path does not exists", IndexError::GENERIC_ERROR);
 				break;
 			case ENOMEM:
-				main->Error(U"Cannot rename " + fromTo + U": not enough kernel memory available");
+				throw IndexError(U"Cannot rename " + fromTo + U": not enough kernel memory available", IndexError::GENERIC_ERROR);
 				break;
 			case ENOSPC:
-				main->Error(U"Cannot rename " + fromTo + U": the device has no room for a new directory");
+				throw IndexError(U"Cannot rename " + fromTo + U": the device has no room for a new directory", IndexError::GENERIC_ERROR);
 				break;
 			case ENOTDIR:
-				main->Error(U"Cannot rename " + fromTo + U": a component of the new is not a directory");
+				throw IndexError(U"Cannot rename " + fromTo + U": a component of the new is not a directory", IndexError::GENERIC_ERROR);
 				break;
 			case ENOTEMPTY:
 			case EEXIST:
-				main->Error(U"Cannot rename " + fromTo + U": the path is a non empty directory");
+				throw IndexError(U"Cannot rename " + fromTo + U": the path is a non empty directory", IndexError::GENERIC_ERROR);
 				break;
 			case EROFS:
-				main->Error(U"Cannot rename " + fromTo + U": filesystem is read-only");
+				throw IndexError(U"Cannot rename " + fromTo + U": filesystem is read-only", IndexError::GENERIC_ERROR);
 				break;
 			case EXDEV:
-				main->Error(U"Cannot rename " + fromTo + U": the new path is not on the same directory as the original file");
+				throw IndexError(U"Cannot rename " + fromTo + U": the new path is not on the same directory as the original file", IndexError::GENERIC_ERROR);
 				break;
 			default:
-				main->Error(U"Cannot rename " + fromTo);
+				throw IndexError(U"Cannot rename " + fromTo, IndexError::GENERIC_ERROR);
 				break;
 		}
+	}
+
+	if (pos != static_cast<std::size_t>(-1)) [[likely]]
+	{
+		m_oFiles[pos].name = newName;
+		m_oFiles[pos].ftId = FileType::GetFtID(m_oFiles[pos], GetPath());
 	}
 }
 
 std::string GetWd(const std::string& path)
 {
 	if (chdir(path.c_str()) == -1)
-		throw Util::Exception("chdir() failed");
+		throw IndexError(U"chdir() failed", IndexError::GENERIC_ERROR, errno);
 
 	char *dir = get_current_dir_name();
 	if (dir == NULL)
-		throw Util::Exception("get_current_dir_name() failed");
+		throw IndexError(U"get_current_dir_name() failed", IndexError::GENERIC_ERROR, errno);
 	
 	const std::string ret = dir;
 	free(dir);
@@ -309,7 +328,7 @@ std::string GetUsablePath(std::string path)
 	wordexp_t p;
 	char** w;
 	if (wordexp(path.c_str(), &p, 0) != 0)
-		throw Util::Exception("wordexp() failed");
+		throw IndexError(U"wordexp() failed", IndexError::GENERIC_ERROR, errno);
 	w = p.we_wordv;
 	std::string expanded = "";
 	for (std::size_t i = 0; i < p.we_wordc; ++i)
@@ -320,4 +339,39 @@ std::string GetUsablePath(std::string path)
 	std::remove_if(resolved.begin(), resolved.end(), [](char c){ return c == '\\'; });
 
 	return resolved;
+}
+
+void ChangeDir(const std::string& path)
+{
+	if (chdir(path.c_str()) == -1)
+	{
+		String reason;
+		switch (errno)
+		{
+			case EACCES:
+				reason = U"no permission";
+				break;
+			case EFAULT:
+				reason = U"path is outside accessible address space";
+				break;
+			case EIO:
+				reason = U"an i/o error occured";
+				break;
+			case ELOOP:
+				reason = U"too many symlink while resolving the path";
+				break;
+			case ENAMETOOLONG:
+				reason = U"the path is too long";
+				break;
+			case ENOENT:
+				reason = U"the path does not exists";
+				break;
+			case ENOTDIR:
+				reason = U"the path is not a directory";
+				break;
+			default:
+				reason = U"";
+		}
+		throw IndexError(U"Could not change workind directory '" + Util::StringConvert<Char>(path) + U"' : " + reason, IndexError::GENERIC_ERROR, errno);
+	}
 }

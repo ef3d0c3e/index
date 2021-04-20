@@ -315,7 +315,14 @@ List::List(MainWindow* main, const std::string& path, bool input):
 	m_mainList(input) // If input is true, then this is the main list
 {
 	SetBackground(Settings::Style::List::background);
-	m_dir = gDirectoryCache.GetDirectory(path).first;
+	try
+	{
+		m_dir = gDirectoryCache.GetDirectory(path).first;
+	}
+	catch (IndexError& e)
+	{
+		// TODO
+	}
 
 	if (!input)
 		return;

@@ -9,8 +9,6 @@ MAKE_CENUM_Q(GeneralID, FtID,
 
 FtID FileType::GetFtID(const File& f, const std::string& path)
 {
-	//TODO: Do something with links...
-
 	if (f.mode == Mode::DIR || f.lnk.mode == Mode::DIR)
 	{
 		// Fullname

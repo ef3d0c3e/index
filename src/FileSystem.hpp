@@ -133,11 +133,12 @@ public:
 
 	////////////////////////////////////////////////
 	/// \brief Renames a path
-	/// \param main The main window
 	/// \param oldName The current path
 	/// \param newName what to rename it to
+	/// \note May throw
+	/// This function is for 'high-level' renaming, i.e renaming a file in the current working directory without changing the file's underlying directory
 	////////////////////////////////////////////////
-	void Rename(MainWindow* main, const std::string& oldName, const std::string& newName);
+	void Rename(const String& oldName, const String& newName);
 };
 
 ////////////////////////////////////////////////
@@ -154,5 +155,12 @@ std::string GetWd(const std::string& path);
 /// \returns A readable path
 ////////////////////////////////////////////////
 std::string GetUsablePath(std::string path);
+
+////////////////////////////////////////////////
+/// \brief Changes the working directory
+/// \param path The path of the new working directory
+/// \note May throw
+////////////////////////////////////////////////
+void ChangeDir(const std::string& path);
 
 #endif // INDEX_FILESYSTEM_HPP

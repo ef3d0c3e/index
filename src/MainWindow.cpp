@@ -140,13 +140,6 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 		Invalidate();
 		Termbox::GetContext().noRepeat = false;
 	}, EventWhen::AFTER);
-	auto show_prompt = [this]()
-	{
-		m_promptStateList = SetAllInactive();
-		m_prompt->ActionShow();
-		Termbox::GetContext().noRepeat = true;
-		Termbox::GetContext().stopInput = true;
-	};
 
 	// {{{ Go
 	// * Menu
@@ -357,45 +350,60 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 	m_changeMenu->OnStopShowing.AddEvent([this](){ this->Invalidate(); }, EventWhen::AFTER);
 	m_changeMenuId = AddWidget(m_changeMenu);
 	// * Keybindings
-	dInput->AddKeyboardInput(Settings::Keys::Change::directory, [this, show_prompt]() {
-		m_prompt->SetPrefix(Settings::Style::Change::change_dir_prompt_prefix);
-		m_prompt->SetBackground(Settings::Style::Change::change_dir_prompt_bg);
-		m_prompt->SetText(U"");
-		show_prompt();
-
-		m_prompt->OnStopShowing.AddEvent([this](bool v){
-			if (!v)
-				return;
-			CD(Util::StringConvert<char>(m_prompt->GetText()));
-		}, EventWhen::AFTER_ONCE);
+	AddKeyboardInput(Settings::Keys::Change::directory, [&]
+	{
+		ActionPrompt([&](const String& input)
+		{
+			CD(Util::StringConvert<char>(input));
+		}, Settings::Style::Change::change_dir_prompt_prefix, Settings::Style::Change::change_dir_prompt_bg, Settings::Style::Change::change_dir_prompt_max);
 	});
 
-	dInput->AddKeyboardInput(Settings::Keys::Change::name, [this, show_prompt]() {
-		m_prompt->SetPrefix(Settings::Style::Change::change_name_prompt_prefix);
-		m_prompt->SetBackground(Settings::Style::Change::change_name_prompt_bg);
-		const File& f = (*m_dir->GetDir())[m_dir->GetPos()];
-		m_prompt->SetText(f.name);
-		m_prompt->SetCompletion({f.name});
-		show_prompt();
-		
-		m_prompt->OnStopShowing.AddEvent([this](bool v){
-			if (!v)
+	AddKeyboardInput(Settings::Keys::Change::name, [&]
+	{
+		if (m_dir->GetEntries() == 0) [[unlikely]]
+			return;
+
+		const String cur = GetCurrentFileName();
+		if (cur.empty())  [[unlikely]]
+			return;
+
+		ActionPrompt([&, cur](const String& input)
+		{
+			if (input.empty()) [[unlikely]]
 				return;
-		}, EventWhen::AFTER_ONCE);
+			try
+			{
+				m_dir->GetDir()->Rename(cur, input);
+			}
+			catch (IndexError& e)
+			{
+				Error(e.GetMessage());
+			}
+		}, Settings::Style::Change::change_name_prompt_prefix, Settings::Style::Change::change_name_prompt_bg, Settings::Style::Change::change_name_prompt_max, cur, cur.size());
 	});
 
-	dInput->AddKeyboardInput(Settings::Keys::Change::name_empty, [this, show_prompt]() {
-		m_prompt->SetPrefix(Settings::Style::Change::change_name_prompt_prefix);
-		m_prompt->SetBackground(Settings::Style::Change::change_name_prompt_bg);
-		const File& f = (*m_dir->GetDir())[m_dir->GetPos()];
-		m_prompt->SetText(U"");
-		m_prompt->SetCompletion({f.name});
-		show_prompt();
-		
-		m_prompt->OnStopShowing.AddEvent([this](bool v){
-			if (!v)
+	AddKeyboardInput(Settings::Keys::Change::name_empty, [&]
+	{
+		if (m_dir->GetEntries() == 0) [[unlikely]]
+			return;
+
+		const String cur = GetCurrentFileName();
+		if (cur.empty())  [[unlikely]]
+			return;
+
+		ActionPrompt([&, cur](const String& input)
+		{
+			if (input.empty()) [[unlikely]]
 				return;
-		}, EventWhen::AFTER_ONCE);
+			try
+			{
+				m_dir->GetDir()->Rename(cur, input);
+			}
+			catch (IndexError& e)
+			{
+				Error(e.GetMessage());
+			}
+		}, Settings::Style::Change::change_name_prompt_prefix, Settings::Style::Change::change_name_prompt_bg, Settings::Style::Change::change_name_prompt_max);
 	});
 	// }}}
 
@@ -429,6 +437,14 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 
 	m_dir->UpdateFromDir();
 	m_parent->UpdateFromDir();
+	try
+	{
+		ChangeDir(GetCurrentPath());
+	}
+	catch (IndexError& e)
+	{
+		Error(e.GetMessage());
+	}
 
 	m_marks->SetMarks(m_dir->GetDir());
 	Resize(Termbox::GetDim());
@@ -549,18 +565,30 @@ void MainWindow::Forward(const String& folder)
 {
 	// Marks & Position
 	m_marks->AddMarks(m_dir->GetDir());
-	if (m_parent->GetDir()->GetPath() != "/")
+	if (m_dir->GetDir()->GetPath() != "/")
 		m_positionCache.AddPosition(m_parent);
 
-	// Parent := Dir
-	gDirectoryCache.DeleteDirectory(m_parent->GetDir());
-	m_parent->MoveFiles(std::move(*m_dir), true);
-	m_parent->UpdateFromDir(); // We want to re-filter it
+	try
+	{
+		//TODO: Update
+		const auto newDir = gDirectoryCache.GetDirectory(m_dir->GetDir()->GetPath() + "/" + Util::StringConvert<char>(folder)).first;
+		ChangeDir(newDir->GetPath());
 
-	// Dir := ...
-	m_dir->SetDir(gDirectoryCache.GetDirectory(m_dir->GetDir()->GetPath() + "/" + Util::StringConvert<char>(folder)).first);
-	m_dir->UpdateFromDir();
-	m_dir->ActionSetPosition(m_positionCache.GetPosition(m_dir));
+		// Parent := Dir
+		gDirectoryCache.DeleteDirectory(m_parent->GetDir());
+		m_parent->MoveFiles(std::move(*m_dir), true);
+		m_parent->UpdateFromDir(); // We want to re-filter it
+
+		// Dir := ...
+		m_dir->SetDir(newDir);
+		m_dir->UpdateFromDir();
+		m_dir->ActionSetPosition(m_positionCache.GetPosition(m_dir));
+	}
+	catch (IndexError& e)
+	{
+		Error(e.GetMessage());
+		return;
+	}
 
 	OnChangeDir();
 }
@@ -571,14 +599,26 @@ void MainWindow::Back()
 	m_marks->AddMarks(m_dir->GetDir());
 	m_positionCache.AddPosition(m_dir);
 
-	// Dir := Parent
-	gDirectoryCache.DeleteDirectory(m_dir->GetDir());
-	m_dir->MoveFiles(std::move(*m_parent), true);
-	m_dir->UpdateFromDir(); // We want to re-filter it
+	try
+	{
+		//TODO: update
+		const auto newParent = gDirectoryCache.GetDirectory(m_parent->GetDir()->GetPath() + "/..").first;
+		ChangeDir(m_parent->GetDir()->GetPath());
 
-	// Parent := ...
-	m_parent->SetDir(gDirectoryCache.GetDirectory(m_dir->GetDir()->GetPath() + "/..").first);
-	m_parent->UpdateFromDir();
+		// Dir := Parent
+		gDirectoryCache.DeleteDirectory(m_dir->GetDir());
+		m_dir->MoveFiles(std::move(*m_parent), true);
+		m_dir->UpdateFromDir(); // We want to re-filter it
+
+		// Parent := ...
+		m_parent->SetDir(newParent);
+		m_parent->UpdateFromDir();
+	}
+	catch (IndexError& e)
+	{
+		Error(e.GetMessage());
+		return;
+	}
 
 	// Find the previous dir
 	const auto pos = m_parent->Find(
@@ -616,13 +656,29 @@ void MainWindow::CD(const std::string& path)
 {
 	// Marks
 	m_marks->AddMarks(m_dir->GetDir());
+	m_positionCache.AddPosition(m_parent);
 	m_positionCache.AddPosition(m_dir);
 
-	gDirectoryCache.DeleteDirectory(m_dir->GetDir());
-	gDirectoryCache.DeleteDirectory(m_parent->GetDir());
 
-	m_dir->SetDir(gDirectoryCache.GetDirectory(path).first);
-	m_parent->SetDir(gDirectoryCache.GetDirectory(m_dir->GetDir()->GetPath() + "/..").first);
+	// If CD fails, we stay where we are
+	try
+	{
+		// TODO: Update
+		const auto newDir = gDirectoryCache.GetDirectory(path).first;
+		const auto newParent = gDirectoryCache.GetDirectory(newDir->GetPath() + "/..").first;
+		ChangeDir(newDir->GetPath());
+
+		gDirectoryCache.DeleteDirectory(m_dir->GetDir());
+		gDirectoryCache.DeleteDirectory(m_parent->GetDir());
+
+		m_dir->SetDir(newDir);
+		m_parent->SetDir(newParent);
+	}
+	catch (IndexError& e)
+	{
+		Error(e.GetMessage());
+		return;
+	}
 
 	m_dir->UpdateFromDir(false);
 	m_parent->UpdateFromDir(false);

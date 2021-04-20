@@ -22,6 +22,7 @@ public:
 	~Prompt();
 
 	EventListener<bool> OnStopShowing; // true -> submited, false -> cancelled
+	EventListener</* TODO */> OnTextChange;
 	void ActionShow();
 
 	void SetPrefix(const TBString& prefix);

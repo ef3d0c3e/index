@@ -37,10 +37,15 @@ Prompt::Prompt(const TBString& prefix, const String& text):
 	SetActive(false);
 
 	AddKeyboardInput(U"#SCHAR", [this](){
+		if (m_text.size() >= m_max) [[unlikely]]
+			return;
+
+		OnTextChange.Notify<EventWhen::BEFORE>();
 		const Char ch = Termbox::GetContext().ev.ch;
 		m_text.insert(m_text.begin()+m_position, ch);
 		++m_position;
 		m_cursorPos += wcwidth(ch);
+		OnTextChange.Notify<EventWhen::AFTER>();
 	});
 
 	AddKeyboardInput(Settings::Keys::Prompt::submit, [this](){
@@ -91,11 +96,13 @@ Prompt::Prompt(const TBString& prefix, const String& text):
 
 	const auto Remove = [this, Left]()
 	{
+		OnTextChange.Notify<EventWhen::BEFORE>();
 		if (m_position == 0) [[unlikely]]
 			return;
 
 		Left();
 		m_text.erase(m_position, 1);
+		OnTextChange.Notify<EventWhen::AFTER>();
 	};
 
 	AddKeyboardInput({Settings::Keys::Prompt::left, Left});

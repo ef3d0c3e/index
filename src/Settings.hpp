@@ -7,21 +7,6 @@
 #include <regex>
 #include <fmt/format.h>
 
-#define LOG(__msg)                                  \
-{                                                   \
-	static bool first = true;                       \
-	std::ofstream logs;                             \
-	if (first)                                      \
-	{                                               \
-		first = false;                              \
-		logs.open("/tmp/index_log", std::ios::ate); \
-	}                                               \
-	else                                            \
-		logs.open("/tmp/index_log", std::ios::app); \
-	logs << __msg;                                  \
-	logs.close();                                   \
-}
-
 namespace Settings
 {
 	// Locale used for index
@@ -154,7 +139,7 @@ namespace Settings
 		constexpr Char unknown_username[] = U"???";
 
 		// * Error
-		constexpr char error_rename_from_to[] = "'{}' -> '{}'";
+		constexpr StringView error_rename_from_to(U"'{}' -> '{}'");
 
 	}
 
@@ -334,8 +319,11 @@ namespace Settings
 		{
 			const TBString change_dir_prompt_prefix(U"cd: ", {0xF0A000, main_window_background.s.bg, TextStyle::Bold});
 			constexpr TBChar change_dir_prompt_bg(U' ', 0xFFFFFF, main_window_background.s.bg, TextStyle::None);
+			constexpr std::size_t change_dir_prompt_max = 1<<10;
+
 			const TBString change_name_prompt_prefix(U"rename: ", {0xF0A000, main_window_background.s.bg, TextStyle::Bold});
 			constexpr TBChar change_name_prompt_bg(U' ', 0xFFFFFF, main_window_background.s.bg, TextStyle::None);
+			constexpr std::size_t change_name_prompt_max = 1<<8;
 		}
 
 		namespace Shell

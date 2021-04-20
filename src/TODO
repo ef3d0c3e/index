@@ -1,4 +1,0 @@
-# TODO List
- - Add a 'OnCharacterEntered' event on the prompt
-# Urgent fixes
- - Fix deleting a tab before the last tab crashing

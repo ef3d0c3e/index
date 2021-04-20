@@ -49,6 +49,7 @@ public:
 	/// \brief Get a directory from the cache or allocate it
 	/// \param path The path
 	/// \returns A directory corresponding to path <The directory, Wether or not the directory should be updated from filesystem>
+	/// \note May throw if the directory has to be initialized
 	////////////////////////////////////////////////
 	std::pair<Directory*, bool> GetDirectory(const std::string& path);
 
