@@ -60,7 +60,7 @@ std::pair<TBStyle, TBStyle> List::DrawFn(std::size_t i, Vec2i pos, int w, bool h
 		const TBString size = [&]()
 		{
 			const auto d = Util::GetDigitsNum<10>(f.sz);
-			const std::size_t unit = std::clamp((d-1)/3, 0, static_cast<int>(Settings::Layout::List::units.size()));
+			const std::size_t unit = std::clamp((d-1)/3, 0, static_cast<int>(Settings::Layout::List::units.size())-1);
 			const std::size_t n1 = f.sz / std::pow(10, unit*3);
 			const std::size_t n2 = (f.sz - n1*std::pow(10, unit*3)) / std::pow(10, unit*3-3+Util::GetDigitsNum<10>(n1));
 
@@ -114,12 +114,23 @@ std::pair<TBStyle, TBStyle> List::DrawFn(std::size_t i, Vec2i pos, int w, bool h
 				case FileMatch::FILTER:
 					s = Settings::Style::Filter::filter_match;
 					break;
+				case FileMatch::SEARCH:
+					s = Settings::Style::Search::search_match;
+					break;
 				default:
 					s = style(c.name);
+			}
+			s.s |= style(c.name).s;
+			s.fg = style(c.name).fg;
+			if (hovered) [[unlikely]]
+			{
+				s.fg = s.bg;
+				s.bg = style(c.name).bg;
 			}
 
 			for (std::size_t i = 0; i < len; ++i)
 			{
+				tbs[pos+i].s.fg  = s.fg;
 				tbs[pos+i].s.bg = s.bg;
 				tbs[pos+i].s.s  = s.s;
 			}
@@ -193,11 +204,114 @@ void List::ActionRight()
 	}
 }
 
+std::size_t List::SearchNext() const
+{
+	if (m_files.empty() || m_search == U"") [[unlikely]]
+		return std::size_t(-1);
+
+	// Forward
+	for (std::size_t forward = GetPos()+1; forward < GetEntries(); ++forward)
+	{
+		for (const auto& match : m_files[forward].second.matches)
+		{
+			if (std::get<0>(match) == FileMatch::SEARCH)
+				return forward;
+		}
+	}
+
+	// Backward
+	for (std::size_t backward = 0; backward < GetPos(); ++backward)
+	{
+		for (const auto& match : m_files[backward].second.matches)
+		{
+			if (std::get<0>(match) == FileMatch::SEARCH)
+				return backward;
+		}
+	}
+
+	return static_cast<std::size_t>(-1);
+}
+
+std::size_t List::SearchPrev() const
+{
+	if (m_files.empty() || m_search == U"") [[unlikely]]
+		return std::size_t(-1);
+
+	// Backward
+	if (GetPos() != 0) [[likely]]
+		for (std::size_t backward = GetPos()-1; backward != std::size_t(-1); --backward)
+		{
+			for (const auto& match : m_files[backward].second.matches)
+			{
+				if (std::get<0>(match) == FileMatch::SEARCH)
+					return backward;
+			}
+		}
+
+	// Forward
+	for (std::size_t forward = GetEntries()-1; forward > GetPos(); --forward)
+	{
+		for (const auto& match : m_files[forward].second.matches)
+		{
+			if (std::get<0>(match) == FileMatch::SEARCH)
+				return forward;
+		}
+	}
+
+	return static_cast<std::size_t>(-1);
+}
+
+bool List::ApplySearch()
+{
+	if (m_files.empty()) [[unlikely]]
+		return false;
+
+	// Clear previous search
+	for (auto& f : m_files)
+	{
+		f.second.matches.erase(std::remove_if(f.second.matches.begin(), f.second.matches.end(), []<class T>(const T& tup)
+		{
+			return std::get<0>(tup) == FileMatch::SEARCH;
+		}),  f.second.matches.end());
+	}
+
+	if (m_search == U"") // Cancel search
+		return true; // All matched technically...
+
+	try
+	{
+		bool matched = false;
+		const std::wregex re(Util::StringConvert<wchar_t>(m_search), Settings::Search::regex_mode);
+
+		for (auto& f : m_files)
+		{
+			const auto s = Util::StringConvert<wchar_t>(f.first->name);
+			if(std::wsmatch m; std::regex_search(s, m, re, Settings::Search::search_mode))
+			{
+				matched = true;
+				FileMatch& match = f.second;
+				for (std::size_t i = 0; i < m.size(); ++i)
+				{
+					match.matches.push_back({FileMatch::SEARCH, m.position(i), m.length(i)});
+				}
+			}
+		}
+
+		return matched;
+	}
+	catch (std::regex_error& e)
+	{
+		throw IndexError(U"Error: Invalid regex", IndexError::REGEX_ERROR);
+	}
+
+	return false;
+}
 
 using namespace std::placeholders;
 List::List(MainWindow* main, const std::string& path, bool input):
 	ListBase(std::bind(&List::DrawFn, this, _1, _2, _3, _4, _5), std::bind(&List::MarkFn, this, _1, _2)),
 	m_main(main),
+	m_search(U""),
 	m_mainList(input) // If input is true, then this is the main list
 {
 	SetBackground(Settings::Style::List::background);
@@ -206,7 +320,7 @@ List::List(MainWindow* main, const std::string& path, bool input):
 	if (!input)
 		return;
 
-	// Input
+	// {{{ Navigation
 	AddKeyboardInput(Settings::Keys::List::down, [this]
 	{
 		Termbox& tb = Termbox::GetTermbox();
@@ -266,6 +380,77 @@ List::List(MainWindow* main, const std::string& path, bool input):
 	});
 
 	AddMouseInput({{Vec2i(0, 0), Vec2i(0, 0)}, Mouse::MOUSE_LEFT, [this](const Vec2i& pos){ ActionMouseClick(pos); }});
+	// }}}
+
+	// {{{ Filter
+	AddKeyboardInput(Settings::Keys::filter, [&]
+	{
+		m_main->ActionPrompt([&](const String& input)
+		{
+			const String name = GetCurrentFileName();
+
+			auto filter = GetFilter();
+			filter.Match = input;
+			SetFilter(filter);
+			UpdateFromDir();
+
+			const auto pos = FindByName(name);
+			if (pos == static_cast<std::size_t>(-1)) [[unlikely]]
+				return;
+			ActionSetPosition(pos);
+		}, Settings::Style::Filter::filter_prompt_prefix, Settings::Style::Filter::filter_prompt_bg, Settings::Style::Filter::filter_prompt_max_length, m_filter.Match, m_filter.Match.size());
+	});
+	// }}}
+
+	// {{{ Search
+	AddKeyboardInput(Settings::Keys::Search::search, [&]
+	{
+		m_main->ActionPrompt([&](const String& input)
+		{
+			m_search = input;
+			try
+			{
+				if (!ApplySearch())
+				{
+					m_main->Message(Settings::Style::Search::search_not_found, Settings::Style::Search::search_not_found_duration);
+					return;
+				}
+			}
+			catch (IndexError& e)
+			{
+				m_main->Error(e.GetMessage());
+				m_search = U"";
+				return;
+			}
+
+			const auto pos = SearchNext();
+			if (pos == static_cast<std::size_t>(-1)) [[unlikely]]
+				return;
+
+			ActionSetPosition(pos);
+
+		}, Settings::Style::Search::search_prompt_prefix, Settings::Style::Search::search_prompt_background, Settings::Style::Search::search_prompt_max_length, U"", 0);
+
+	});
+
+	AddKeyboardInput(Settings::Keys::Search::next, [&]
+	{
+		const auto pos = SearchNext();
+		if (pos == static_cast<std::size_t>(-1)) [[unlikely]]
+			return;
+
+		ActionSetPosition(pos);
+	});
+
+	AddKeyboardInput(Settings::Keys::Search::prev, [&]
+	{
+		const auto pos = SearchPrev();
+		if (pos == static_cast<std::size_t>(-1)) [[unlikely]]
+			return;
+
+		ActionSetPosition(pos);
+	});
+	// }}}
 
 	// Other
 	AddKeyboardInput(Settings::Keys::Go::home, [this]
@@ -395,7 +580,7 @@ void List::UpdateFromDir(bool preservePos)
 				for (std::size_t i = 0; i < m_dir->Size(); ++i)
 				{
 					File& f = (*m_dir)[i];
-					if (f.name.size() == 0 || (!m_filter.HiddenFiles && f.name[0] == U'.'))
+					if (!m_filter.HiddenFiles && f.name[0] == U'.')
 						continue;
 
 					const auto s = Util::StringConvert<wchar_t>(f.name);
@@ -404,7 +589,6 @@ void List::UpdateFromDir(bool preservePos)
 						FileMatch match;
 						for (std::size_t j = 0; j < m.size(); ++j)
 						{
-						std::cout << m.size() << " ";
 							match.matches.push_back({FileMatch::FILTER, m.position(j), m.length(j)});
 						}
 
@@ -415,19 +599,24 @@ void List::UpdateFromDir(bool preservePos)
 				return;
 			}
 			catch (std::regex_error& e)
-			{ }
+			{
+				m_main->Error(U"Error: Invalid regex");
+			}
 		}
 
 		// If regex is invalid, we use the default list
 		for (std::size_t i = 0; i < m_dir->Size(); ++i)
 		{
 			File& f = (*m_dir)[i];
-			if (f.name.size() == 0 || (!m_filter.HiddenFiles && f.name[0] == U'.'))
+			if (!m_filter.HiddenFiles && f.name[0] == U'.')
 				continue;
 
 			m_files.push_back({&f, FileMatch{}});
 		}
 	}();
+
+	// Search
+	ApplySearch();
 
 	// Sort
 	Sort(false);

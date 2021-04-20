@@ -11,6 +11,7 @@ class List : public ListBase
 {
 	Directory* m_dir;
 	MainWindow* m_main;
+	String m_search;
 	bool m_mainList;
 
 	std::pair<TBStyle, TBStyle> DrawFn(std::size_t i, Vec2i pos, int w, bool hovered, Char trailing) const;
@@ -42,6 +43,25 @@ private:
 	/// Will notify ```OnChangePosition``` only if entering a new directory
 	////////////////////////////////////////////////
 	void ActionRight();
+
+	////////////////////////////////////////////////
+	/// \brief Apply search
+	/// \returns true If at least one element matched the search, false otherwise
+	/// \note May throw in case the regex in m_search is invalid
+	////////////////////////////////////////////////
+	bool ApplySearch();
+
+	////////////////////////////////////////////////
+	/// \brief Finds the next element in the list that matches the search
+	/// \returns The element's index if it exists, std::size_t(-1) otherwise
+	////////////////////////////////////////////////
+	std::size_t SearchNext() const;
+
+	////////////////////////////////////////////////
+	/// \brief Finds the previous element in the list that matches the search
+	/// \returns The element's index if it exists, std::size_t(-1) otherwise
+	////////////////////////////////////////////////
+	std::size_t SearchPrev() const;
 public:
 	////////////////////////////////////////////////
 	/// \brief Constructor

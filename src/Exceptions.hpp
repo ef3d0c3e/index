@@ -11,6 +11,7 @@ public:
 		FORK_FAILED, 1,
 		FS_CANT_ACCESS, 2,
 		FORMAT_ERROR, 3,
+		REGEX_ERROR, 4,
 	);
 
 private:

@@ -11,7 +11,7 @@ struct FileMatch
 {
 	MAKE_CENUMV_Q(MatchType, std::uint8_t,
 		FILTER, 0,
-		FIND, 1, // TODO...
+		SEARCH, 1,
 	);
 	std::vector<std::tuple<MatchType, std::size_t, std::size_t>> matches; // <pos, size>
 

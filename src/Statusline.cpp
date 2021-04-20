@@ -7,20 +7,20 @@
 
 void Statusline::Draw()
 {
-	if (std::chrono::system_clock::now() < m_errorStop) // Draw error message
+	if (std::chrono::system_clock::now() < m_messageStop) // Draw custom message
 	{
 		auto x = GetPosition()[0];
 		// Spacing
 		{
-			Draw::Char({m_bg.ch, Settings::Style::Statusline::error}, Vec2i(x, GetPosition()[1]));
+			Draw::Char(m_bg, Vec2i(x, GetPosition()[1]));
 			x += wcwidth(m_bg.ch);
 		}
 
 		// Text
 		{
-			x += Draw::TextLine(m_errorMsg, Settings::Style::Statusline::error, Vec2i(x, GetPosition()[1]), GetSize()[0],
+			x += Draw::TextLineBackground(m_message, m_bg.s.bg, Vec2i(x, GetPosition()[1]), GetSize()[0],
 					{Settings::Layout::trailing_character, Settings::Style::Statusline::error}).first;
-			Draw::Horizontal({m_bg.ch, Settings::Style::Statusline::error}, GetPosition()+Vec2i(x, 0), GetSize()[0]-x);
+			Draw::Horizontal(m_bg, GetPosition()+Vec2i(x, 0), GetSize()[0]-x);
 		}
 
 		return;
@@ -218,8 +218,8 @@ void Statusline::Draw()
 Statusline::Statusline(MainWindow* main):
 	m_main(main),
 	m_bg(Settings::Style::Statusline::background),
-	m_errorStop(std::chrono::system_clock::now()),
-	m_errorMsg(U"")
+	m_messageStop(std::chrono::system_clock::now()),
+	m_message({U"", Settings::Style::default_text_style})
 {
 }
 
@@ -238,8 +238,13 @@ const TBChar& Statusline::GetBackground() const
 	return m_bg;
 }
 
+void Statusline::SetMessage(const TBString& msg, std::chrono::duration<std::size_t> secs)
+{
+	m_message = msg;
+	m_messageStop = std::chrono::system_clock::now() + secs;
+}
+
 void Statusline::SetError(const String& msg, std::chrono::duration<std::size_t> secs)
 {
-	m_errorMsg = msg;
-	m_errorStop = std::chrono::system_clock::now() + secs;
+	 SetMessage({msg, Settings::Style::Statusline::error}, secs);
 }

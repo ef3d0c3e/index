@@ -29,6 +29,7 @@ Prompt::Prompt(const TBString& prefix, const String& text):
 	m_text(text),
 	m_bg(U' ', Settings::Style::default_text_style),
 	m_prefixWidth(prefix.SizeWide()),
+	m_max(256),
 	m_position(text.size()),
 	m_cursorPos(Util::SizeWide(text))
 {
@@ -248,4 +249,9 @@ const TBChar& Prompt::GetBackground() const
 void Prompt::SetCompletion(const std::vector<String>& completion)
 {
 	m_completion = completion;
+}
+
+void Prompt::SetMax(std::size_t max)
+{
+	m_max = max;
 }

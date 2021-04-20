@@ -131,7 +131,14 @@ public:
 	const List* GetParentList() const;
 
 	////////////////////////////////////////////////
-	/// \brief Draws an error message in the status line
+	/// \brief Draws a message in the Statusline
+	/// \param msg The message
+	/// \param secs The message's duration in seconds
+	////////////////////////////////////////////////
+	void Message(const TBString& msg, std::chrono::duration<std::size_t> secs);
+
+	////////////////////////////////////////////////
+	/// \brief Draws an error message in the Statusline
 	/// \param msg The error message
 	/// \param secs The message's duration in seconds
 	////////////////////////////////////////////////
@@ -200,4 +207,3 @@ public:
 };
 
 #endif // INDEX_MAINWINDOW_HPP
-

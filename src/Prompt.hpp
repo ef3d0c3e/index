@@ -10,6 +10,7 @@ class Prompt : public Widget
 	TBChar m_bg;
 
 	int m_prefixWidth;
+	std::size_t m_max;
 	std::size_t m_position;
 	int m_cursorPos;
 
@@ -39,6 +40,12 @@ public:
 	const TBChar& GetBackground() const;
 
 	void SetCompletion(const std::vector<String>& completion);
+
+	////////////////////////////////////////////////
+	/// \brief Sets the maximum number of characters
+	/// \param max The max
+	////////////////////////////////////////////////
+	void SetMax(std::size_t max);
 
 	MAKE_CENUM_Q(TypeT, std::uint8_t,
 		DELETE, 0,

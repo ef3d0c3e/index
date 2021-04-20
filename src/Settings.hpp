@@ -262,8 +262,21 @@ namespace Settings
 		{
 			const TBString filter_prompt_prefix(U"filter: ", {0xF0A000, main_window_background.s.bg, TextStyle::Bold});
 			constexpr TBChar filter_prompt_bg(U' ', 0xFFFFFF, main_window_background.s.bg, TextStyle::None);
+			constexpr std::size_t filter_prompt_max_length = 1<<10;
 
 			constexpr TBStyle filter_match{0x000000, 0xFA4A20, TextStyle::Underline}; // FG is ignored
+		}
+
+		namespace Search
+		{
+			const static TBString search_prompt_prefix{U"search: ", {0x00F0A0, main_window_background.s.bg, TextStyle::Bold}};
+			constexpr TBChar search_prompt_background{U' ', {0xFFFFFF, main_window_background.s.bg, TextStyle::None}};
+			constexpr std::size_t search_prompt_max_length = 1<<10;
+
+			const static TBString search_not_found = {U"Nothing found", {0x00F0A0, 0, TextStyle::Bold}}; ///< Message in case nothing is found (background will be ignored)
+			const static std::chrono::duration<std::size_t> search_not_found_duration = std::chrono::seconds(2);
+
+			constexpr TBStyle search_match{0x000000, 0xFA4AF0, TextStyle::Underline}; // FG is ignored
 		}
 
 		namespace Menu
@@ -387,7 +400,7 @@ namespace Settings
 		{
 			constexpr Char menu[] = U"g";
 			constexpr Char top[] = U"g g";
-			constexpr Char bottom[] = U"S-G"; // Will also work for <repeat> G
+			constexpr Char bottom[] = U"S-G"; // Will also work for <repeat> S-G
 			constexpr Char home[] = U"g h";
 			constexpr Char root[] = U"g /";
 
@@ -457,10 +470,23 @@ namespace Settings
 			constexpr Char exit[] = U"ESC";
 		}
 
+		namespace Search
+		{
+			constexpr Char search[] = U"/";
+			constexpr Char next[] = U"n";
+			constexpr Char prev[] = U"S-N";
+		}
+
 		constexpr Char filter[] = U"f";
 	}
 
 	namespace Filter
+	{
+		constexpr auto regex_mode = std::regex_constants::ECMAScript | std::regex_constants::icase;
+		constexpr auto search_mode = std::regex_constants::match_any;
+	}
+
+	namespace Search
 	{
 		constexpr auto regex_mode = std::regex_constants::ECMAScript | std::regex_constants::icase;
 		constexpr auto search_mode = std::regex_constants::match_any;

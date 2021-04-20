@@ -91,9 +91,9 @@ const static auto CompiledIcons = []()
 
 	using namespace std::literals;
 	static constexpr auto General = Util::make_array(
-		Ft{U"?"sv, {0xFFFFFF}, TextStyle::None}, // unknown
-		Ft{U""sv, {0x40BFFF, 0x40BFFF}, TextStyle::Bold}, // directory
-		Ft{U""sv, {0xFFFFFF, 0x8F8F8F}, TextStyle::None}  // default file
+		Ft{U"? "sv, {0xFFFFFF}, TextStyle::None}, // unknown
+		Ft{U" "sv, {0x40BFFF, 0x40BFFF}, TextStyle::Bold}, // directory
+		Ft{U" "sv, {0xFFFFFF, 0x8F8F8F}, TextStyle::None}  // default file
 	);
 
 	//TODO: constexpr c++20 (>gcc11...)

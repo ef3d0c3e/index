@@ -240,7 +240,8 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 	m_dir->AddKeyboardInput(Settings::Keys::Marks::unselect_all, [this]()
 	{
 		for (std::size_t i = 0; i < m_dir->Size(); ++i)
-			(*m_dir->GetDir())[i].mark &= ~(MarkType::SELECTED);
+			if (m_dir->Get(i).first.mark & MarkType::SELECTED)
+				m_dir->MarkFn(i, MarkType::SELECTED);
 	});
 	m_dir->AddKeyboardInput(Settings::Keys::Marks::tag, [this]()
 	{
@@ -403,29 +404,6 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 
 	m_shellMenu = new ShellMenu(this);
 	m_shellMenuId = AddWidget(m_shellMenu);
-
-	// {{{ Filter
-	dInput->AddKeyboardInput(Settings::Keys::filter, [this, show_prompt]() {
-		m_prompt->SetPrefix(Settings::Style::Filter::filter_prompt_prefix);
-		m_prompt->SetBackground(Settings::Style::Filter::filter_prompt_bg);
-		m_prompt->SetText(m_dir->GetFilter().Match);
-		show_prompt();
-
-		// We only set filter for dir
-		m_prompt->OnStopShowing.AddEvent([this](bool v)
-		{
-			if (!v)
-				return;
-			const String name = (m_dir->GetEntries() != 0) ? m_dir->Get(m_dir->GetPos()).first.name : U"";
-			auto filter = m_dir->GetFilter();
-			filter.Match = m_prompt->GetText();
-			m_dir->SetFilter(filter);
-			m_dir->UpdateFromDir();
-
-			m_dir->ActionSetPosition(GetFilePosition(name));
-		}, EventWhen::AFTER_ONCE);
-	});
-	// }}}
 
 	// {{{ Cache
 	// * CacheExplorer
@@ -624,6 +602,11 @@ const List* MainWindow::GetParentList() const
 	return m_parent;
 }
 
+void MainWindow::Message(const TBString& msg, std::chrono::duration<std::size_t> secs)
+{
+	m_statusline->SetMessage(msg, secs);
+}
+
 void MainWindow::Error(const String& msg, std::chrono::duration<std::size_t> secs)
 {
 	m_statusline->SetError(msg, secs);
@@ -749,6 +732,7 @@ void MainWindow::ActionPrompt(std::function<void(const String&)> callback, const
 	m_prompt->SetBackground(bg);
 	m_prompt->SetText(input);
 	m_prompt->SetPos(position);
+	m_prompt->SetMax(max);
 	m_prompt->ActionShow();
 	Termbox::GetContext().noRepeat = true;
 	Termbox::GetContext().stopInput = true;

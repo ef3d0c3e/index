@@ -11,14 +11,21 @@ class Statusline : public Widget
 
 	virtual void Draw();
 
-	std::chrono::time_point<std::chrono::system_clock> m_errorStop;
-	String m_errorMsg;
+	std::chrono::time_point<std::chrono::system_clock> m_messageStop;
+	TBString m_message;
 public:
 	Statusline(MainWindow* main);
 	~Statusline();
 
 	void SetBackground(const TBChar& bg);
 	const TBChar& GetBackground() const;
+
+	////////////////////////////////////////////////
+	/// \brief Display a message in the status line
+	/// \param msg The message
+	/// \param secs The message's duration in seconds
+	////////////////////////////////////////////////
+	void SetMessage(const TBString& msg, std::chrono::duration<std::size_t> secs);
 
 	////////////////////////////////////////////////
 	/// \brief Display an error in the status line
