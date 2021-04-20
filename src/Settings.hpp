@@ -274,6 +274,9 @@ namespace Settings
 			const TBString sort_menu_true{U"true", {0x5777FF, COLOR_DEFAULT, TextStyle::Bold}};
 			const TBString sort_menu_false{U"false", {0xFF5777, COLOR_DEFAULT, TextStyle::Bold}};
 			const TBString sort_menu_selected{U"X", {0x40F090, COLOR_DEFAULT, TextStyle::Bold}};
+
+			constexpr TBStyle shell_menu_categories{0xFFFFFF, 0x202020, TextStyle::Bold};
+			constexpr TBStyle shell_menu{0xCFCFCF, COLOR_DEFAULT, TextStyle::None};
 		}
 
 		namespace Marks
@@ -303,6 +306,13 @@ namespace Settings
 			constexpr TBChar change_dir_prompt_bg(U' ', 0xFFFFFF, main_window_background.s.bg, TextStyle::None);
 			const TBString change_name_prompt_prefix(U"rename: ", {0xF0A000, main_window_background.s.bg, TextStyle::Bold});
 			constexpr TBChar change_name_prompt_bg(U' ', 0xFFFFFF, main_window_background.s.bg, TextStyle::None);
+		}
+
+		namespace Shell
+		{
+			const static TBString shell_prompt_prefix{U"shell: ", {0x00A0F0, main_window_background.s.bg, TextStyle::Bold}};
+			constexpr TBChar shell_prompt_background{U' ', {0xFFFFFF, main_window_background.s.bg, TextStyle::None}};
+			constexpr std::size_t shell_prompt_max_length = 1<<10;
 		}
 
 		namespace Cache
@@ -396,6 +406,14 @@ namespace Settings
 			constexpr Char reverse[]        = U"o r";
 			constexpr Char dir_first[]      = U"o d";
 			constexpr Char case_sensitive[] = U"o i";
+		}
+
+		namespace Shell
+		{
+			constexpr Char menu[]       = U"s"; ///< Shell menu
+			constexpr Char shell_at[]   = U"S-S"; ///< Open shell at
+			constexpr Char shell[]      = U"!"; ///< Run shell
+			constexpr Char shell_file[] = U"@"; ///< Run shell but adds a file component
 		}
 
 		namespace Cache

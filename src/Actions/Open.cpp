@@ -25,9 +25,9 @@
 	logs.close();                                   \
 }
 
-std::string Actions::Opener::GetCommand(const File& f, const std::string& path) const
+std::string Actions::Opener::GetCommand(const String& fname, const std::string& path) const
 {
-	std::string name = Util::StringConvert<char>(f.name);
+	std::string name = Util::StringConvert<char>(fname);
 	for (std::size_t i = 0; i < name.size(); ++i)
 	{
 		if (name[i] == ' ')
@@ -79,14 +79,14 @@ std::pair<Actions::OpenType, const Actions::Opener*> Actions::GetOpener(const Fi
 	return {Actions::OpenType::CustomOpen, nullptr};
 }
 
-void Actions::Open(const File& f, const std::string& path, const Opener& opener)
+void Actions::Open(const String& fname, const std::string& path, const Opener& opener)
 {
-	const std::string command = opener.GetCommand(f, path);
+	const std::string command = opener.GetCommand(fname, path);
 
 	int status = 0;
 	pid_t pid = fork();
 	if (pid == -1)
-		throw Util::Exception("Ations::Open() : fork() failed");
+		throw IndexError(U"Actions::Open() fork() failed", IndexError::FORK_FAILED, errno);
 	
 	if (opener.flag & Opener::Close)
 		Termbox::Close();
@@ -94,7 +94,7 @@ void Actions::Open(const File& f, const std::string& path, const Opener& opener)
 	{
 		Termbox::GetContext().stop = true;
 		if (chdir(path.c_str()) == -1)
-			throw Util::Exception("chdir() failed");
+			throw IndexError(U"Actions::Open() chdir() failed", IndexError::FS_CANT_ACCESS, errno);
 
 		if (opener.flag & Opener::SupressOutput)
 		{
@@ -118,23 +118,44 @@ void Actions::Open(const File& f, const std::string& path, const Opener& opener)
 			Termbox::ReOpen();
 		}
 	}
-
-	if (opener.flag & Opener::Close)
-	{
-	}
-
 }
 
-bool Actions::CustomOpen(const File& f, const std::string& path, const std::string& format)
+void Actions::CustomOpen(const String& fname, const std::string& path, const std::string& format)
 {
 	try
 	{
-		Open(f, path, Opener(format, Opener::Close));
+		Open(fname, path, Opener(format, Opener::Close));
 	}
 	catch (fmt::format_error& e)
 	{
-		return false;
+		throw IndexError(U"Format error '" + Util::StringConvert<Char>(std::string(e.what())) + U"'", IndexError::FORMAT_ERROR);
 	}
+}
 
-	return true;
+void Actions::OpenShell(const std::string& path)
+{
+	const char* shell = getenv("SHELL");
+	if (shell == NULL)
+		shell = "/usr/bin/sh";
+
+	int status = 0;
+	pid_t pid = fork();
+	if (pid == -1)
+		throw IndexError(U"Actions::OpenShell() fork() failed", IndexError::FORK_FAILED, errno);
+	
+	Termbox::Close();
+	if (pid == 0) // child
+	{
+		Termbox::GetContext().stop = true;
+		if (chdir(path.c_str()) == -1)
+			throw IndexError(U"Actions::OpenShell() chdir() failed", IndexError::FS_CANT_ACCESS, errno);
+
+		execlp("/bin/sh", "sh", "-c", shell, (char*)0);
+		exit(1);
+	}
+	else // parent
+	{
+		waitpid(pid, &status, 0);
+		Termbox::ReOpen();
+	}
 }

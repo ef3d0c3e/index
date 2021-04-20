@@ -27,7 +27,7 @@ namespace Actions
 			format(std::move(_format)), flag(_flag)
 		{ }
 
-		std::string GetCommand(const File& f, const std::string& path) const;
+		std::string GetCommand(const String& fname, const std::string& path) const;
 	};
 
 	using namespace std::literals;
@@ -106,15 +106,30 @@ namespace Actions
 
 	std::pair<OpenType, const Opener*> GetOpener(const File& f, const std::string& path);
 
-	void Open(const File& f, const std::string& path, const Opener& opener);
 	////////////////////////////////////////////////
 	/// \brief Attempts to open a file
-	/// \param f The file to open
+	/// \param fname The name of the file to open
 	/// \param path The path of the file
 	/// \param format The format string for the opener
-	/// \returns false if an error occured, true otherwise
+	/// \note May throw
 	////////////////////////////////////////////////
-	bool CustomOpen(const File& f, const std::string& path, const std::string& format);
+	void Open(const String& fname, const std::string& path, const Opener& opener);
+
+	////////////////////////////////////////////////
+	/// \brief Attempts to open a file
+	/// \param fname The name of the file to open
+	/// \param path The path of the file
+	/// \param format The format string for the opener
+	/// \note May throw
+	////////////////////////////////////////////////
+	void CustomOpen(const String& fname, const std::string& path, const std::string& format);
+
+	////////////////////////////////////////////////
+	/// \brief Open a shell
+	/// \param path The path to open the shell in
+	/// \note May throw
+	////////////////////////////////////////////////
+	void OpenShell(const std::string& path);
 }
 
 #endif // INDEX_ACTIONS_OPEN_HPP

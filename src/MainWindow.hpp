@@ -11,6 +11,7 @@ class MarksMenu;
 class Prompt;
 class CacheExplorer;
 class SortMenu;
+class ShellMenu;
 
 class DummyInput : public Widget
 {
@@ -62,6 +63,9 @@ private:
 
 	SortMenu* m_sortMenu;
 	std::size_t m_sortMenuId;
+
+	ShellMenu* m_shellMenu;
+	std::size_t m_shellMenuId;
 
 	MarksMenu* m_marks;
 	std::size_t m_marksId;
@@ -123,7 +127,7 @@ public:
 	/// \param msg The error message
 	/// \param secs The message's duration in seconds
 	////////////////////////////////////////////////
-	void Error(const String& msg, std::chrono::duration<std::size_t> secs = std::chrono::seconds(5));
+	void Error(const String& msg, std::chrono::duration<std::size_t> secs = std::chrono::seconds(3));
 
 	void CD(const std::string& path);
 
@@ -179,6 +183,12 @@ public:
 	/// \returns A pair <true if the user submitted, false if cancelled, the output>
 	////////////////////////////////////////////////
 	void ActionPrompt(std::function<void(const String&)> callback, const TBString& prefix, const TBChar& bg, std::size_t max, const String& input = U"", std::size_t position = 0);
+
+	////////////////////////////////////////////////
+	/// \brief GEt the current file's name
+	/// \returns The name of the current file (or U"" if none)
+	////////////////////////////////////////////////
+	String GetCurrentFileName() const;
 };
 
 #endif // INDEX_MAINWINDOW_HPP

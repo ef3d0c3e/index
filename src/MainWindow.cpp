@@ -9,6 +9,7 @@
 #include "DirectoryCache.hpp"
 #include "UI/CacheExplorer.hpp"
 #include "UI/SortMenu.hpp"
+#include "UI/ShellMenu.hpp"
 
 MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 	Window::Window({U"", Settings::Style::default_text_style}),
@@ -134,7 +135,6 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 	m_promptId = AddWidget(m_prompt);
 	m_prompt->OnStopShowing.AddEvent([this](bool) {
 		RestoreAllActive(std::move(m_promptStateList));
-		// Dont Invalidate() because we want to be able to display error in the StatusLine
 		Invalidate();
 		Termbox::GetContext().noRepeat = false;
 	}, EventWhen::AFTER);
@@ -143,6 +143,7 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 		m_promptStateList = SetAllInactive();
 		m_prompt->ActionShow();
 		Termbox::GetContext().noRepeat = true;
+		Termbox::GetContext().stopInput = true;
 	};
 
 	// {{{ Go
@@ -398,6 +399,9 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 	m_sortMenu = new SortMenu(this);
 	m_sortMenuId = AddWidget(m_sortMenu);
 
+	m_shellMenu = new ShellMenu(this);
+	m_shellMenuId = AddWidget(m_shellMenu);
+
 	// {{{ Filter
 	dInput->AddKeyboardInput(Settings::Keys::filter, [this, show_prompt]() {
 		m_prompt->SetPrefix(Settings::Style::Filter::filter_prompt_prefix);
@@ -473,6 +477,7 @@ void MainWindow::Resize(Vec2i dim)
 	m_changeMenu->SetSize(Vec2i(w, m_changeMenu->GetHeight()));
 
 	m_sortMenu->Resize(Vec2i(w, h));
+	m_shellMenu->Resize(Vec2i(w, h));
 
 	// MainWindow layout
 	const int available_width = w-[&]<std::size_t... i>(std::index_sequence<i...>)
@@ -618,6 +623,8 @@ void MainWindow::CD(const std::string& path)
 	m_dir->UpdateFromDir(false);
 	m_parent->UpdateFromDir(false);
 
+	m_dir->ActionSetPosition(0);
+
 	// Find the previous dir
 	const auto pos = m_parent->Find(
 		Util::StringConvert<Char>(m_dir->GetDir()->GetFolderName()),
@@ -717,10 +724,19 @@ void MainWindow::ActionPrompt(std::function<void(const String&)> callback, const
 	m_prompt->SetPos(position);
 	m_prompt->ActionShow();
 	Termbox::GetContext().noRepeat = true;
+	Termbox::GetContext().stopInput = true;
 
 	m_prompt->OnStopShowing.AddEvent([this, callback](bool v){
 		if (!v)
 			return;
 		callback(m_prompt->GetText());
 	}, EventWhen::AFTER_ONCE);
+}
+
+String MainWindow::GetCurrentFileName() const
+{
+	if (m_dir->Size() == 0)
+		return U"";
+
+	return m_dir->Get(m_dir->GetPos()).first.name;
 }

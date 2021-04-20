@@ -175,13 +175,19 @@ void List::ActionRight()
 	{
 		const auto [openType, opener] = Actions::GetOpener(f, m_dir->GetPath());
 		if (openType == Actions::OpenType::Executable)
-			Actions::Open(f, m_dir->GetPath(), *opener);
+			Actions::Open(f.name, m_dir->GetPath(), *opener);
 		else
 		{
 			m_main->ActionPrompt([&](const String& input)
 			{
-				if (!Actions::CustomOpen(f, m_dir->GetPath(), Util::StringConvert<char>(input)))
-					m_main->Error(U"Invalid format", std::chrono::seconds(2));
+				try
+				{
+					Actions::CustomOpen(f.name, m_dir->GetPath(), Util::StringConvert<char>(input));
+				}
+				catch (IndexError& e)
+				{
+					m_main->Error(U"Error: " + e.GetMessage());
+				}
 			}, Settings::Style::List::open_prompt_prefix, Settings::Style::List::open_prompt_background, Settings::Style::List::open_prompt_max_length, U" {}", 0);
 		}
 	}

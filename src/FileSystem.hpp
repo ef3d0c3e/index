@@ -2,6 +2,7 @@
 #define INDEX_FILESYSTEM_HPP
 
 #include "FileType.hpp"
+#include "Exceptions.hpp"
 class MainWindow;
 
 typedef decltype(errno) Error;
