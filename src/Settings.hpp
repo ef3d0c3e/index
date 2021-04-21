@@ -16,6 +16,12 @@ namespace Settings
 
 	constexpr bool directory_resolve_lnk = true;
 
+
+	// Shell variable that gets incremented for each nested OpenShell
+	// Leave empty to disable this feature
+	constexpr char shell_variable[] = "RANGER_LEVEL"; 
+	
+
 	namespace Layout
 	{
 		constexpr Char trailing_character = U'…';
@@ -68,9 +74,7 @@ namespace Settings
 			constexpr int right_margin = 1;
 			constexpr Char unknown_owner[] = U"???";
 			constexpr Char unknown_group[] = U"???";
-			constexpr std::size_t date_max_size = 32;
-			constexpr char date_format[] = "%Y-%m-%d %H:%M:%S";
-			constexpr Char unknown_date[] = U"???";
+			constexpr std::string_view date_format = "{:%Y-%m-%d %H:%M:%S}";
 			constexpr bool display_link = true;
 			constexpr Char link_arrow[] = U"➜ ";
 			constexpr Char link_invalid_arrow[] = U"➜ ";
@@ -176,13 +180,13 @@ namespace Settings
 		
 		namespace Tabline
 		{
-			constexpr TBChar background{U' ', 0xFFFFFF, 0x202030, TextStyle::None};
-			constexpr TBStyle hostname{0x8F40F0, background.s.bg, TextStyle::Bold};
-			constexpr TBStyle separator{0xFF40F0, background.s.bg, TextStyle::Bold};
-			constexpr TBStyle username{0x2F60F0, background.s.bg, TextStyle::Bold};
-			constexpr TBStyle directory{0xC0C0C0, background.s.bg, TextStyle::None};
-			constexpr TBStyle directory_separator{0xF0A0A0, background.s.bg, TextStyle::Bold};
-			constexpr TBStyle selected{0xAFFFFF, background.s.bg, TextStyle::Bold};
+			constexpr TBChar background{U' ', 0xFFFFFF, COLOR_DEFAULT, TextStyle::None};
+			constexpr TBStyle hostname{0x61A171, background.s.bg, TextStyle::Bold};
+			constexpr TBStyle separator{0x61A171, background.s.bg, TextStyle::None};
+			constexpr TBStyle username{0x61A171, background.s.bg, TextStyle::Bold};
+			constexpr TBStyle directory{0x6BA4A4, background.s.bg, TextStyle::None};
+			constexpr TBStyle directory_separator{0x6BA4A4, background.s.bg, TextStyle::Bold};
+			constexpr TBStyle selected{0xFFFFFF, background.s.bg, TextStyle::Bold};
 			constexpr TBStyle repeat{0xF0C030, 0x201040, TextStyle::Bold};
 			constexpr TBStyle tab{0xAFAFAF, background.s.bg, TextStyle::Bold};
 			constexpr TBStyle tab_current{0xFF8F9F, background.s.bg, TextStyle::Bold | TextStyle::Underline};
@@ -222,9 +226,10 @@ namespace Settings
 				std::make_pair(U"x", TBStyle{0x9C5555, background.s.bg, TextStyle::None}),
 			};
 
-			constexpr TBStyle owner{0x9080F0, background.s.bg, TextStyle::Bold};
-			constexpr TBStyle group{0x9080F0, background.s.bg, TextStyle::Bold};
-			constexpr TBStyle date{0xF08010, background.s.bg, TextStyle::None};
+			constexpr TBStyle owner{0x9080F0, background.s.bg, TextStyle::None};
+			const static TBString owner_group_sep{U":", {0x9080F0, background.s.bg, TextStyle::None}};
+			constexpr TBStyle group{0x9080F0, background.s.bg, TextStyle::None};
+			constexpr TBStyle date{0xF05040, background.s.bg, TextStyle::None};
 
 			constexpr TBStyle link_arrow{0x90F0F0, background.s.bg, TextStyle::Bold};
 			constexpr TBStyle link_invalid_arrow{0xFFA0A0, background.s.bg, TextStyle::Bold};

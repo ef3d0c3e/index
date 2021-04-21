@@ -116,7 +116,7 @@ const static auto CompiledIcons = []()
 		Ft2{U" "sv, {0xFFFFFF, 0x4040F0}, TextStyle::None, {U"py"sv}},
 		Ft2{U"亮"sv, {0xFFFFFF, 0x4040F0}, TextStyle::None, {U"sh"sv, U"zsh"sv, U"bash"sv}},
 		Ft2{U" "sv, {0xA0F0B0}, TextStyle::None, {U"out"sv}},
-		Ft2{U"遲"sv, {0xD08050}, TextStyle::None, {U"tar"sv, U"xz"sv, U"gz"sv, U"bz2"sv, U"lz"sv, U"lz4"sv, U"lzma"sv, U"lzo"sv, U"rz"sv, U"z"sv, U"Z"sv, U"ar"sv, U"lzx"sv, U"rar"sv, U"zip"sv, U"7z"sv}},
+		Ft2{U"遲"sv, {0xD08050}, TextStyle::None, {U"tar"sv, U"xz"sv, U"gz"sv, U"bz2"sv, U"lz"sv, U"lz4"sv, U"lzma"sv, U"lzo"sv, U"rz"sv, U"z"sv, U"Z"sv, U"ar"sv, U"lzx"sv, U"rar"sv, U"zip"sv, U"7z"sv , U"deb"sv}},
 		Ft2{U" "sv, {0xD9F050}, TextStyle::None, {U"json"sv}},
 
 		// Media

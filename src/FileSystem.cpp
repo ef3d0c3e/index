@@ -301,8 +301,7 @@ void Directory::Rename(const String& oldName, const String& newName)
 
 std::string GetWd(const std::string& path)
 {
-	if (chdir(path.c_str()) == -1)
-		throw IndexError(U"chdir() failed", IndexError::GENERIC_ERROR, errno);
+	ChangeDir(path);
 
 	char *dir = get_current_dir_name();
 	if (dir == NULL)
@@ -372,6 +371,6 @@ void ChangeDir(const std::string& path)
 			default:
 				reason = U"";
 		}
-		throw IndexError(U"Could not change workind directory '" + Util::StringConvert<Char>(path) + U"' : " + reason, IndexError::GENERIC_ERROR, errno);
+		throw IndexError(U"Could not change working directory to '" + Util::StringConvert<Char>(path) + U"' : " + reason, IndexError::GENERIC_ERROR, errno);
 	}
 }

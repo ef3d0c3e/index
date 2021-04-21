@@ -1,7 +1,8 @@
 #include "Open.hpp"
-#include <fmt/format.h>
 #include "../TermboxWidgets/Termbox.hpp"
 #include "../FileSystem.hpp"
+#include "../Settings.hpp"
+#include <fmt/format.h>
 #include <aio.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -107,7 +108,7 @@ void Actions::Open(const String& fname, const std::string& path, const Opener& o
 		if (opener.flag & Opener::SetSid)
 			setsid();
 
-		execlp("/bin/sh", "sh", "-c", command.c_str(), (char*)0);
+		execlp("/usr/bin/sh", "sh", "-c", command.c_str(), (char*)0);
 		exit(1);
 	}
 	else // parent
@@ -147,10 +148,25 @@ void Actions::OpenShell(const std::string& path)
 	if (pid == 0) // child
 	{
 		Termbox::GetContext().stop = true;
-		if (chdir(path.c_str()) == -1)
-			throw IndexError(U"Actions::OpenShell() chdir() failed", IndexError::FS_CANT_ACCESS, errno);
+		ChangeDir(path);
 
-		execlp("/bin/sh", "sh", "-c", shell, (char*)0);
+		if constexpr (!std::string_view(Settings::shell_variable).empty())
+		{
+			// Increments the shell variable
+			// No need to handle errors for this
+			char* shell_level = getenv(Settings::shell_variable);
+			if (shell_level == NULL)
+			{
+				setenv(Settings::shell_variable, "1", 0);
+			}
+			else
+			{
+				int level = 1 + std::atoi(shell_level);
+				setenv(Settings::shell_variable, std::to_string(level).c_str(), 1);
+			}
+		}
+
+		execlp("/usr/bin/sh", "sh", "-c", shell, (char*)0);
 		exit(1);
 	}
 	else // parent

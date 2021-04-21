@@ -8,26 +8,28 @@ class List;
 class Tabline;
 class Statusline;
 class Menu;
-class MarksMenu;
 class Prompt;
+
+class MarksExplorer;
 class CacheExplorer;
 class PositionExplorer;
+
+
+class GoMenu;
 class SortMenu;
 class ShellMenu;
-
-class DummyInput : public Widget
-{
-	virtual void Draw() { }
-public:
-	DummyInput() { }
-	~DummyInput() { }
-};
+class MarksMenu;
+class ShowMenu;
+class ChangeMenu;
 
 class MainWindow : public Window
 {
+	friend class ShowMenu;
+	friend class ChangeMenu;
+
+	friend class MarksExplorer;
 	friend class CacheExplorer;
 	friend class PositionExplorer;
-	friend class MarksMenu;
 
 public:
 	MAKE_CENUM_Q(CurrentMode, std::uint8_t,
@@ -45,46 +47,44 @@ private:
 	MainSettings m_settings;
 	PositionCache m_positionCache;
 
-	DummyInput* dInput;
-
-	List* m_dir;
-	std::size_t m_dirId;
-	List* m_parent;
-	std::size_t m_parentId;
+	// Statusline & Tabline
 	Tabline* m_tabline;
 	std::size_t m_tablineId;
 	Statusline* m_statusline;
 	std::size_t m_statuslineId;
 
-	Menu* m_goMenu;
+	// Lists
+	List* m_dir;
+	std::size_t m_dirId;
+	List* m_parent;
+	std::size_t m_parentId;
+
+	Prompt* m_prompt;
+	std::size_t m_promptId;
+
+	// Menus
+	GoMenu* m_goMenu;
 	std::size_t m_goMenuId;
-	Menu* m_marksMenu;
-	std::size_t m_marksMenuId;
-	Menu* m_showMenu;
-	std::size_t m_showMenuId;
-
-	Menu* m_changeMenu;
-	std::size_t m_changeMenuId;
-
 	SortMenu* m_sortMenu;
 	std::size_t m_sortMenuId;
-
 	ShellMenu* m_shellMenu;
 	std::size_t m_shellMenuId;
+	MarksMenu* m_marksMenu;
+	std::size_t m_marksMenuId;
+	ShowMenu* m_showMenu;
+	std::size_t m_showMenuId;
+	ChangeMenu* m_changeMenu;
+	std::size_t m_changeMenuId;
 
-	MarksMenu* m_marks;
-	std::size_t m_marksId;
-
+	// Explorers
+	MarksExplorer* m_marksExplorer;
+	std::size_t m_marksExplorerId;
 	CacheExplorer* m_cacheExplorer;
 	std::size_t m_cacheExplorerId;
-
 	PositionExplorer* m_positionExplorer;
 	std::size_t m_positionExplorerId;
 
 	CurrentMode m_currentMode;
-
-	Prompt* m_prompt;
-	std::size_t m_promptId;
 
 	std::vector<std::pair<Widget*, bool>> m_promptStateList;
 
@@ -114,6 +114,12 @@ private:
 	/// \returns The position of the file if it has been found, 0 otherwise
 	////////////////////////////////////////////////
 	std::size_t GetFilePosition(const String& name);
+	
+	////////////////////////////////////////////////
+	/// \brief Enables/Disables all small widgets embedded in the MainWindow (lists and menus mainly)
+	/// \param v The value (true for enabled, false for disable)
+	////////////////////////////////////////////////
+	void SetEnabledInternalWidgets(bool v);
 public:
 	MainWindow(const std::string& path, std::size_t tabId);
 	~MainWindow();
@@ -128,7 +134,9 @@ public:
 	void Back();
 
 	const List* GetList() const;
+	List* GetList();
 	const List* GetParentList() const;
+	List* GetParentList();
 
 	////////////////////////////////////////////////
 	/// \brief Draws a message in the Statusline
@@ -156,9 +164,10 @@ public:
 	/// \brief Gets the current mode
 	/// \returns The current mode
 	////////////////////////////////////////////////
-	CurrentMode GetMode() const;
-
-	std::size_t GetTab() const;
+	CurrentMode GetMode() const
+	{
+		return m_currentMode;
+	}
 
 	////////////////////////////////////////////////
 	/// \brief Gets the tabline widget's id
@@ -204,6 +213,30 @@ public:
 	/// \returns The name of the current file (or U"" if none)
 	////////////////////////////////////////////////
 	String GetCurrentFileName() const;
+
+	////////////////////////////////////////////////
+	/// \brief Switches from this to win
+	/// \param win The MainWindow to switch to
+	////////////////////////////////////////////////
+	void Switch(MainWindow* win);
+
+	////////////////////////////////////////////////
+	/// \brief Sets the tab's id for this MainWindow
+	/// \param id The new tab id
+	////////////////////////////////////////////////
+	void SetTabID(std::size_t id)
+	{
+		m_tab = id;
+	}
+
+	////////////////////////////////////////////////
+	/// \brief Gets the current tab's id
+	/// \returns The tab id
+	////////////////////////////////////////////////
+	std::size_t GetTabID() const
+	{
+		return m_tab;
+	}
 };
 
 #endif // INDEX_MAINWINDOW_HPP

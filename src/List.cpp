@@ -487,62 +487,6 @@ void List::MoveFiles(List&& l, bool preservePos)
 		ActionSetPosition(pos);
 }
 
-/*
-void List::UpdateFiles()
-{
-	auto [error, flag] = m_dir->GetFiles();
-	if (error)
-	{
-		switch (flag)
-		{
-			case EACCES:
-				m_main->Error(U"Error: No permission");
-				break;
-			case EFAULT:
-				m_main->Error(U"Error: Path points outside your accessible address space");
-				break;
-			case EIO:
-				m_main->Error(U"Error: An I/O error occurred.");
-				break;
-			case ELOOP:
-				m_main->Error(U"Error: Too many symbolic links were encountered in resolving path.");
-				break;
-			case ENAMETOOLONG:
-				m_main->Error(U"Error: Path is too long.");
-				break;
-			case ENOENT:
-				m_main->Error(U"Error: The directory specified in path does not exist.");
-				break;
-			case ENOMEM:
-				m_main->Error(U"Error: Insufficient kernel memory was available.");
-				break;
-			case ENOTDIR:
-				m_main->Error(U"Error: A component of path is not a directory.");
-				break;
-			case EMFILE:
-				m_main->Error(U"Error: The per-process limit on the number of open file de‐ scriptors has been reached.");
-				break;
-			case ENFILE:
-				m_main->Error(U"Error: The  system-wide  limit  on the total number of open files has been reached.");
-				break;
-			default:
-				m_main->Error(U"Error: Cannot access directory");
-				break;
-		}
-	}
-
-	UpdateFilter();
-}
-
-void List::UpdateFilter()
-{
-	m_dir->Filter();
-	m_dir->Sort();
-	SetEntries(m_dir->SizeD());
-	ActionSetPosition(0);
-}
-*/
-
 void List::SetSettings(const List::DirectorySettings& settings)
 {
 	m_settings = settings;

@@ -1,6 +1,7 @@
 #include "Statusline.hpp"
 #include "Settings.hpp"
 #include "List.hpp"
+#include <fmt/chrono.h>
 #include <unistd.h>
 #include <pwd.h>
 #include <grp.h>
@@ -100,10 +101,10 @@ void Statusline::Draw()
 			
 		}
 
-		// Spacing
+		// Separator
+		if (Settings::Style::Statusline::owner_group_sep.Size() != 0)
 		{
-			Draw::Char(m_bg, Vec2i(x, y));
-			x += bgWidth;
+			x += Draw::TextLine(Settings::Style::Statusline::owner_group_sep, Vec2i(x, y), w-x, {Settings::Layout::trailing_character, Settings::Style::Statusline::owner_group_sep[0].s}).first;
 			if (x >= w)
 				return;
 		}
@@ -132,14 +133,8 @@ void Statusline::Draw()
 
 		// Date
 		{
-			char buff[Settings::Layout::Statusline::date_max_size];
-			std::size_t ret = std::strftime(buff, Settings::Layout::Statusline::date_max_size-1, Settings::Layout::Statusline::date_format, localtime(&f.lastModification));
-			if (ret != 0)
-				x += Draw::TextLine(Util::StringConvert<Char>(std::string(buff)), Settings::Style::Statusline::date, Vec2i(x, y), w-x,
-						{Settings::Layout::trailing_character, Settings::Style::Statusline::date}, 0).first;
-			else
-				x += Draw::TextLine(Settings::Layout::Statusline::unknown_date, Settings::Style::Statusline::date, Vec2i(x, y), w-x,
-						{Settings::Layout::trailing_character, Settings::Style::Statusline::date}, 0).first;
+			const String date = Util::StringConvert<Char>(fmt::format(Settings::Layout::Statusline::date_format, fmt::localtime(f.lastModification)));
+			x += Draw::TextLine(date, Settings::Style::Statusline::date, Vec2i(x, y), w-x, {Settings::Layout::trailing_character, Settings::Style::Statusline::date}).first;
 			if (x >= w)
 				return;
 		}

@@ -73,7 +73,10 @@ PositionExplorer::PositionExplorer(MainWindow* main):
 			ActionDownN(tb.GetContext().repeat);
 	});
 
-	AddKeyboardInput(Settings::Keys::List::down_page, [this]{ ActionDownN(10); });
+	AddKeyboardInput(Settings::Keys::List::down_page, [this]
+	{
+		ActionDownN(10);
+	});
 
 	AddMouseInput(Mouse({Vec2i(0, 0), Vec2i(0, 0)}, Mouse::MOUSE_WHEEL_DOWN,
 				[this](const Vec2i&){ ActionDownN(1); }));
@@ -87,14 +90,20 @@ PositionExplorer::PositionExplorer(MainWindow* main):
 			ActionUpN(tb.GetContext().repeat);
 	});
 
-	AddKeyboardInput(Settings::Keys::List::up_page, [this]{ ActionUpN(10); });
+	AddKeyboardInput(Settings::Keys::List::up_page, [this]
+	{
+		ActionUpN(10);
+	});
 
 	AddMouseInput(Mouse({Vec2i(0, 0), Vec2i(0, 0)}, Mouse::MOUSE_WHEEL_UP,
 				[this](const Vec2i&){ ActionUpN(1); }));
 
-	AddKeyboardInput(Settings::Keys::Go::top,  [this]{ ActionSetPosition(0); });
+	AddKeyboardInput(Settings::Keys::Go::top,  [this]
+	{
+		ActionSetPosition(0);
+	});
 
-	AddKeyboardInput(Settings::Keys::Go::bottom,  [this]
+	AddKeyboardInput(Settings::Keys::Go::bottom, [this]
 	{
 		Termbox& tb = Termbox::GetTermbox();
 		if (tb.GetContext().hasRepeat)

@@ -109,7 +109,7 @@ void Tabline::Draw()
 			//Tab
 			{
 				const auto s = Util::ToString(i);
-				if (m_main->GetTab() == i) [[unlikely]]
+				if (m_main->GetTabID() == i) [[unlikely]]
 					w2 -= Draw::TextLine(s, Settings::Style::Tabline::tab_current, GetPosition() + Vec2i(w2-Util::SizeWide(s), 0),
 						w2, {Settings::Layout::trailing_character, Settings::Style::Tabline::tab_current}).first;
 				else [[likely]]
@@ -119,7 +119,7 @@ void Tabline::Draw()
 		};
 
 		for (std::size_t i = 0;
-				i < Tabs.size(); ++i)
+				i < gTabs.size(); ++i)
 			fn(i);
 	}
 	
@@ -145,7 +145,6 @@ void Tabline::DrawRepeat()
 		return;
 
 	// Repeat
-	//const static auto repeat_len = Util::GetDigitsNum<10>(std::numeric_limits<decltype(Termbox::GetContext().repeat)>::max());
 	if (Termbox::GetContext().hasRepeat)
 	{
 		const auto len = Util::GetDigitsNum<10>(Termbox::GetContext().repeat);

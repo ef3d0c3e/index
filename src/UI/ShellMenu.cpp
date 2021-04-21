@@ -14,12 +14,12 @@ ShellMenu::ShellMenu(MainWindow* main):
 		{{U"Action", Settings::Style::Menu::shell_menu_categories}, 85},
 	},
 	{
-		{Settings::Keys::Shell::shell_at, Settings::Style::Menu::shell_menu},
-		{U"Open shell", Settings::Style::Menu::shell_menu},
-		{Settings::Keys::Shell::shell, Settings::Style::Menu::shell_menu},
-		{U"Run shell", Settings::Style::Menu::shell_menu},
+		{Settings::Keys::Shell::shell_at,   Settings::Style::Menu::shell_menu},
+		{U"Open shell",                     Settings::Style::Menu::shell_menu},
+		{Settings::Keys::Shell::shell,      Settings::Style::Menu::shell_menu},
+		{U"Run shell",                      Settings::Style::Menu::shell_menu},
 		{Settings::Keys::Shell::shell_file, Settings::Style::Menu::shell_menu},
-		{U"Access Time", Settings::Style::Menu::shell_menu},
+		{U"Access Time",                    Settings::Style::Menu::shell_menu},
 	});
 
 	AddKeyboardInput(Settings::Keys::Shell::menu, [this]
