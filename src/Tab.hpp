@@ -3,6 +3,14 @@
 
 #include "MainWindow.hpp"
 
+
+/* NOTE:
+ * - Tab::m_mainId
+ * - MainWindow::m_tabId
+ * - MainWindow's index in the Termbox window list
+ * - Tab's index in gTabs
+ * These must always be equal */
+
 class Tab
 {
 	std::size_t m_mainId;
@@ -27,6 +35,11 @@ public:
 	/// \returns A boolean indicating whether or not to update the lists
 	////////////////////////////////////////////////
 	bool ShouldUpdate() const;
+
+	////////////////////////////////////////////////
+	/// \brief Deletes the tab from gTabs
+	////////////////////////////////////////////////
+	void Delete();
 };
 
 extern std::deque<Tab> gTabs;

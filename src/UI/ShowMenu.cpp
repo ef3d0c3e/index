@@ -1,5 +1,5 @@
 #include "ShowMenu.hpp"
-#include "../List.hpp"
+#include "List.hpp"
 #include "../MainWindow.hpp"
 #include "../Settings.hpp"
 #include "MarksExplorer.hpp"
@@ -12,16 +12,16 @@ ShowMenu::ShowMenu(MainWindow* main):
 	SetTable(3,
 	{
 		{{U"Key",    Settings::Style::Menu::show_menu_categories}, 15},
-		{{U"Status",    Settings::Style::Menu::show_menu_categories}, 15},
+		{{U"Status", Settings::Style::Menu::show_menu_categories}, 15},
 		{{U"Action", Settings::Style::Menu::show_menu_categories}, 70},
 	},
 	{
 		{Settings::Keys::Show::hidden, Settings::Style::Menu::show_menu},
 		Settings::Style::Menu::show_menu_false,
-		{U"Toggle hidden files", Settings::Style::Menu::show_menu},
+		{U"Toggle hidden files",       Settings::Style::Menu::show_menu},
 		{Settings::Keys::Show::parent, Settings::Style::Menu::show_menu},
 		Settings::Style::Menu::show_menu_true,
-		{U"Toggle parent pane", Settings::Style::Menu::show_menu},
+		{U"Toggle parent pane",        Settings::Style::Menu::show_menu},
 	});
 
 	// * Keybindings

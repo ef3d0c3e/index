@@ -1,10 +1,8 @@
 #ifndef INDEX_LIST_HPP
 #define INDEX_LIST_HPP
 
-#include "MainWindow.hpp"
-#include "Settings.hpp"
-
-//typedef std::function<bool(const File&, const File&, const Sort::Settings&)> SortFn;
+#include "../MainWindow.hpp"
+#include "../Settings.hpp"
 
 typedef Widgets::ListSelect<Settings::Layout::List::settings, MarkType> ListBase;
 class List : public ListBase

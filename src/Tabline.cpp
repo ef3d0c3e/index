@@ -1,7 +1,7 @@
 #include "Tabline.hpp"
 #include "Settings.hpp"
-#include "List.hpp"
 #include "Tab.hpp"
+#include "UI/List.hpp"
 #include <unistd.h>
 
 void Tabline::Draw()

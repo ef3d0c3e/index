@@ -1,5 +1,5 @@
 #include "ChangeMenu.hpp"
-#include "../List.hpp"
+#include "List.hpp"
 #include "../MainWindow.hpp"
 #include "../Settings.hpp"
 

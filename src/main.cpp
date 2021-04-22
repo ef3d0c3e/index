@@ -18,8 +18,8 @@ int main(int argc, char* argv[])
 		Termbox tb(Color::COLORS_TRUECOLOR, COLOR_DEFAULT);
 		Tab tab;
 		gTabs.push_back(std::move(tab));
-		MainWindow win(path, gTabs.size()-1);
-		gTabs.back().SetMainWindow(tb.AddWidget(&win));
+		MainWindow* win = new MainWindow(path, gTabs.size()-1);
+		gTabs.back().SetMainWindow(tb.AddWidget(win));
 
 		tb.RenderLoop();
 	}

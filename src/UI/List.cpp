@@ -1,6 +1,6 @@
 #include "List.hpp"
-#include "Actions/Actions.hpp"
-#include "DirectoryCache.hpp"
+#include "../Actions/Actions.hpp"
+#include "../DirectoryCache.hpp"
 #include <algorithm>
 
 std::pair<TBStyle, TBStyle> List::DrawFn(std::size_t i, Vec2i pos, int w, bool hovered, Char trailing) const

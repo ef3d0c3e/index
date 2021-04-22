@@ -1,6 +1,6 @@
 #include "Statusline.hpp"
 #include "Settings.hpp"
-#include "List.hpp"
+#include "UI/List.hpp"
 #include <fmt/chrono.h>
 #include <unistd.h>
 #include <pwd.h>

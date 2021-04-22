@@ -1,11 +1,16 @@
 #include "MainWindow.hpp"
-#include "List.hpp"
 #include "Tab.hpp"
+#include "DirectoryCache.hpp"
+
+// Widgets
 #include "Tabline.hpp"
 #include "Statusline.hpp"
-#include "Menu.hpp"
+
+// List
+#include "UI/List.hpp"
+
+// Prompt
 #include "Prompt.hpp"
-#include "DirectoryCache.hpp"
 
 // Menus
 #include "UI/GoMenu.hpp"
@@ -47,11 +52,15 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 	SetBorderFlags(0x00);
 	SetBackground(Settings::Style::main_window_background, false, false);
 
-	// General input
-	AddKeyboardInput(Settings::Keyboard::quit, [](){ Termbox::GetTermbox().GetContext().stop = true; });
+	// * General input
+	AddKeyboardInput(Settings::Keyboard::quit, []
+	{
+		//TODO: Prompt
+		Termbox::GetTermbox().GetContext().stop = true;
+	});
 
-	// {{{ Tab
-	AddKeyboardInput(Settings::Keys::Go::tab_new, [this]()
+	// * Tabs
+	AddKeyboardInput(Settings::Keys::Go::tab_new, [this]
 	{
 		Tab tab;
 		gTabs.push_back(std::move(tab));
@@ -61,7 +70,7 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 		Switch(main);
 	});
 
-	AddKeyboardInput(Settings::Keys::Go::tab_next, [&]()
+	AddKeyboardInput(Settings::Keys::Go::tab_next, [this]
 	{
 		if (gTabs.size() == 1)
 			return;
@@ -75,7 +84,7 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 		Switch(win);
 	});
 
-	AddKeyboardInput(Settings::Keys::Go::tab_prev, [this]()
+	AddKeyboardInput(Settings::Keys::Go::tab_prev, [this]
 	{
 		if (gTabs.size() == 1)
 			return;
@@ -98,26 +107,14 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 		SetActive(false);
 		m_marksExplorer->AddMarks(m_dir->GetDir());
 
-		MainWindow* win = gTabs[(m_tab-1) % gTabs.size()].GetMainWindow();
+		MainWindow* win = gTabs[(m_tab == gTabs.size()-1) ? m_tab-1 : ((m_tab+1) % gTabs.size())].GetMainWindow();
+
+		Switch(win);
+		gTabs[m_tab].Delete();
 
 		gDirectoryCache.DeleteDirectory(m_dir->GetDir());
 		gDirectoryCache.DeleteDirectory(m_parent->GetDir());
-
-		// Update all ids
-		for (auto it = gTabs.begin()+m_tab; it != gTabs.end(); ++it)
-			it->GetMainWindow()->SetTabID(it->GetMainWindow()->GetTabID()-1);
-		// Delete
-		Termbox::GetTermbox().Termbox::RemoveWidget(gTabs[m_tab].GetMainWindowId());
-		//delete gTabs[m_tab].GetMainWindow();
-		//gTabs.erase(gTabs.begin()+m_tab);
-
-
-		win->SetVisible(true);
-		win->SetActive(true);
-		win->Invalidate();
-		Termbox::GetContext().clear = true;
 	});
-	// }}}
 
 	// * Tabline & statusline
 	m_tabline = new Tabline(this);
@@ -601,7 +598,7 @@ void MainWindow::Switch(MainWindow* win)
 	win->SetActive(true);
 	if (gTabs[win->GetTabID()].ShouldUpdate())
 	{
-		// We update both, even though in some cases only pupdating one would suffice
+		// We update both, even though in some cases only updating one would be enough
 		win->m_dir->UpdateFromDir();
 		win->m_parent->UpdateFromDir();
 	}
