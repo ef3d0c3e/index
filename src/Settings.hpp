@@ -488,7 +488,7 @@ namespace Settings
 	namespace Cache
 	{
 		constexpr std::size_t cache_num = 1<<8; ///< Maximum number of (unused) cached directories at once
-		constexpr std::chrono::duration<std::size_t> update_age(std::chrono::seconds(3600));  ///< Update from filesystem if older than (in seconds)
+		constexpr std::chrono::duration<std::size_t> update_age(std::chrono::seconds(300));  ///< Automatically update from filesystem if older than (in seconds)
 	}
 
 	namespace Position

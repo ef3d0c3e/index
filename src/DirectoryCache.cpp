@@ -66,6 +66,7 @@ std::pair<Directory*, bool> DirectoryCache::GetDirectory(const std::string& path
 
 	bool shouldUpdate = std::chrono::system_clock::now()-cached->updated > Settings::Cache::update_age;
 
+
 	++cached->refCount;
 	return std::make_pair(cached->dir, shouldUpdate);
 }

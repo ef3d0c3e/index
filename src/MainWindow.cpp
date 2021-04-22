@@ -336,9 +336,53 @@ void MainWindow::Forward(const String& folder)
 
 	try
 	{
-		//TODO: Update
-		const auto newDir = gDirectoryCache.GetDirectory(m_dir->GetDir()->GetPath() + ((GetCurrentPath() != "/") ? "/" : "") + Util::StringConvert<char>(folder)).first;
+		const auto [newDir, shouldUpdate] = gDirectoryCache.GetDirectory(m_dir->GetDir()->GetPath() + ((GetCurrentPath() != "/") ? "/" : "") + Util::StringConvert<char>(folder));
+		// Theoretically, changedir should throw first...
 		ChangeDir(newDir->GetPath());
+		if (shouldUpdate)
+		{
+			auto [failed, _errno] = newDir->GetFiles();
+			if (failed)
+			{
+				// Message
+				switch (_errno)
+				{
+					case EACCES:
+						throw IndexError(U"Error: No permission", IndexError::GENERIC_ERROR);
+						break;
+					case EFAULT:
+						throw IndexError(U"Error: Path points outside your accessible address space", IndexError::GENERIC_ERROR);
+						break;
+					case EIO:
+						throw IndexError(U"Error: An I/O error occurred.", IndexError::GENERIC_ERROR);
+						break;
+					case ELOOP:
+						throw IndexError(U"Error: Too many symbolic links were encountered in resolving path.", IndexError::GENERIC_ERROR);
+						break;
+					case ENAMETOOLONG:
+						throw IndexError(U"Error: Path is too long.", IndexError::GENERIC_ERROR);
+						break;
+					case ENOENT:
+						throw IndexError(U"Error: The directory specified in path does not exist.", IndexError::GENERIC_ERROR);
+						break;
+					case ENOMEM:
+						throw IndexError(U"Error: Insufficient kernel memory was available.", IndexError::GENERIC_ERROR);
+						break;
+					case ENOTDIR:
+						throw IndexError(U"Error: A component of path is not a directory.", IndexError::GENERIC_ERROR);
+						break;
+					case EMFILE:
+						throw IndexError(U"Error: The per-process limit on the number of open file de‐scriptors has been reached.", IndexError::GENERIC_ERROR);
+						break;
+					case ENFILE:
+						throw IndexError(U"Error: The  system-wide  limit  on the total number of open files has been reached.", IndexError::GENERIC_ERROR);
+						break;
+					default:
+						throw IndexError(U"Error: Cannot access directory", IndexError::GENERIC_ERROR);
+						break;
+				}
+			}
+		}
 
 		// Parent := Dir
 		gDirectoryCache.DeleteDirectory(m_parent->GetDir());
@@ -368,8 +412,52 @@ void MainWindow::Back()
 	try
 	{
 		//TODO: Update
-		const auto newParent = gDirectoryCache.GetDirectory(m_parent->GetDir()->GetPath() + "/..").first;
+		const auto [newParent, shouldUpdate] = gDirectoryCache.GetDirectory(m_parent->GetDir()->GetPath() + "/..");
 		ChangeDir(m_parent->GetDir()->GetPath());
+		if (shouldUpdate)
+		{
+			auto [failed, _errno] = newParent->GetFiles();
+			if (failed)
+			{
+				// Message
+				switch (_errno)
+				{
+					case EACCES:
+						throw IndexError(U"Error: No permission", IndexError::GENERIC_ERROR);
+						break;
+					case EFAULT:
+						throw IndexError(U"Error: Path points outside your accessible address space", IndexError::GENERIC_ERROR);
+						break;
+					case EIO:
+						throw IndexError(U"Error: An I/O error occurred.", IndexError::GENERIC_ERROR);
+						break;
+					case ELOOP:
+						throw IndexError(U"Error: Too many symbolic links were encountered in resolving path.", IndexError::GENERIC_ERROR);
+						break;
+					case ENAMETOOLONG:
+						throw IndexError(U"Error: Path is too long.", IndexError::GENERIC_ERROR);
+						break;
+					case ENOENT:
+						throw IndexError(U"Error: The directory specified in path does not exist.", IndexError::GENERIC_ERROR);
+						break;
+					case ENOMEM:
+						throw IndexError(U"Error: Insufficient kernel memory was available.", IndexError::GENERIC_ERROR);
+						break;
+					case ENOTDIR:
+						throw IndexError(U"Error: A component of path is not a directory.", IndexError::GENERIC_ERROR);
+						break;
+					case EMFILE:
+						throw IndexError(U"Error: The per-process limit on the number of open file de‐scriptors has been reached.", IndexError::GENERIC_ERROR);
+						break;
+					case ENFILE:
+						throw IndexError(U"Error: The  system-wide  limit  on the total number of open files has been reached.", IndexError::GENERIC_ERROR);
+						break;
+					default:
+						throw IndexError(U"Error: Cannot access directory", IndexError::GENERIC_ERROR);
+						break;
+				}
+			}
+		}
 
 		// Dir := Parent
 		gDirectoryCache.DeleteDirectory(m_dir->GetDir());
@@ -440,9 +528,97 @@ void MainWindow::CD(const std::string& path)
 	try
 	{
 		// TODO: Update
-		const auto newDir = gDirectoryCache.GetDirectory(path).first;
-		const auto newParent = gDirectoryCache.GetDirectory(newDir->GetPath() + "/..").first;
+		const auto [newDir, updateDir] = gDirectoryCache.GetDirectory(path);
+		const auto [newParent, updateParent] = gDirectoryCache.GetDirectory(newDir->GetPath() + "/..");
 		ChangeDir(newDir->GetPath());
+		if (updateDir)
+		{
+			auto [failed, _errno] = newDir->GetFiles();
+			if (failed)
+			{
+				// Message
+				switch (_errno)
+				{
+					case EACCES:
+						throw IndexError(U"Error: No permission", IndexError::GENERIC_ERROR);
+						break;
+					case EFAULT:
+						throw IndexError(U"Error: Path points outside your accessible address space", IndexError::GENERIC_ERROR);
+						break;
+					case EIO:
+						throw IndexError(U"Error: An I/O error occurred.", IndexError::GENERIC_ERROR);
+						break;
+					case ELOOP:
+						throw IndexError(U"Error: Too many symbolic links were encountered in resolving path.", IndexError::GENERIC_ERROR);
+						break;
+					case ENAMETOOLONG:
+						throw IndexError(U"Error: Path is too long.", IndexError::GENERIC_ERROR);
+						break;
+					case ENOENT:
+						throw IndexError(U"Error: The directory specified in path does not exist.", IndexError::GENERIC_ERROR);
+						break;
+					case ENOMEM:
+						throw IndexError(U"Error: Insufficient kernel memory was available.", IndexError::GENERIC_ERROR);
+						break;
+					case ENOTDIR:
+						throw IndexError(U"Error: A component of path is not a directory.", IndexError::GENERIC_ERROR);
+						break;
+					case EMFILE:
+						throw IndexError(U"Error: The per-process limit on the number of open file de‐scriptors has been reached.", IndexError::GENERIC_ERROR);
+						break;
+					case ENFILE:
+						throw IndexError(U"Error: The  system-wide  limit  on the total number of open files has been reached.", IndexError::GENERIC_ERROR);
+						break;
+					default:
+						throw IndexError(U"Error: Cannot access directory", IndexError::GENERIC_ERROR);
+						break;
+				}
+			}
+		}
+		if (updateParent)
+		{
+			auto [failed, _errno] = newParent->GetFiles();
+			if (failed)
+			{
+				// Message
+				switch (_errno)
+				{
+					case EACCES:
+						throw IndexError(U"Error: No permission", IndexError::GENERIC_ERROR);
+						break;
+					case EFAULT:
+						throw IndexError(U"Error: Path points outside your accessible address space", IndexError::GENERIC_ERROR);
+						break;
+					case EIO:
+						throw IndexError(U"Error: An I/O error occurred.", IndexError::GENERIC_ERROR);
+						break;
+					case ELOOP:
+						throw IndexError(U"Error: Too many symbolic links were encountered in resolving path.", IndexError::GENERIC_ERROR);
+						break;
+					case ENAMETOOLONG:
+						throw IndexError(U"Error: Path is too long.", IndexError::GENERIC_ERROR);
+						break;
+					case ENOENT:
+						throw IndexError(U"Error: The directory specified in path does not exist.", IndexError::GENERIC_ERROR);
+						break;
+					case ENOMEM:
+						throw IndexError(U"Error: Insufficient kernel memory was available.", IndexError::GENERIC_ERROR);
+						break;
+					case ENOTDIR:
+						throw IndexError(U"Error: A component of path is not a directory.", IndexError::GENERIC_ERROR);
+						break;
+					case EMFILE:
+						throw IndexError(U"Error: The per-process limit on the number of open file de‐scriptors has been reached.", IndexError::GENERIC_ERROR);
+						break;
+					case ENFILE:
+						throw IndexError(U"Error: The  system-wide  limit  on the total number of open files has been reached.", IndexError::GENERIC_ERROR);
+						break;
+					default:
+						throw IndexError(U"Error: Cannot access directory", IndexError::GENERIC_ERROR);
+						break;
+				}
+			}
+		}
 
 		gDirectoryCache.DeleteDirectory(m_dir->GetDir());
 		gDirectoryCache.DeleteDirectory(m_parent->GetDir());
@@ -601,6 +777,7 @@ void MainWindow::Switch(MainWindow* win)
 		// We update both, even though in some cases only updating one would be enough
 		win->m_dir->UpdateFromDir();
 		win->m_parent->UpdateFromDir();
+		gTabs[win->GetTabID()].SetShouldUpdate(false);
 	}
 
 	win->Invalidate();

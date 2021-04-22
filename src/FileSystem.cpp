@@ -18,6 +18,7 @@ Permission& operator|=(Permission& l, const Permission& r)
 Directory::Directory(const std::string& path):
 	m_path(path)
 {
+	// If this throws, the content of m_oFiles musn't be erased!
 	m_pathResolvedUnscaped = GetUsablePath(path);
 
 	GetFiles();
@@ -34,7 +35,7 @@ std::pair<bool, Error> Directory::GetFiles()
 	{
 		struct stat64 sb;
 		if (lstat64(name.c_str(), &sb) == -1)
-			throw Util::Exception("lstat64() failed");
+			throw IndexError(U"Directory::GetFiles() : lstat64() failed", IndexError::GENERIC_ERROR, errno);
 
 		// Mode
 		switch (sb.st_mode & S_IFMT)
@@ -146,7 +147,7 @@ std::pair<bool, Error> Directory::GetFiles()
 	while ((pent = readdir64(dir)))
 	{
 		if (pent == NULL)
-			throw Util::Exception("readdir64() returned NULL");
+			throw IndexError(U"Directory::GetFiles() : readdir64() returned NULL", IndexError::GENERIC_ERROR, errno);
 		if (i % Settings::directory_block_size && i != 0)
 			m_oFiles.reserve(i+Settings::directory_block_size);
 

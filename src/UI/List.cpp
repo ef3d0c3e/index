@@ -618,37 +618,37 @@ void List::UpdateFromFilesystem(bool preservePos)
 		switch (flag)
 		{
 			case EACCES:
-				m_main->Error(U"Error: No permission");
+				throw IndexError(U"Error: No permission", IndexError::GENERIC_ERROR);
 				break;
 			case EFAULT:
-				m_main->Error(U"Error: Path points outside your accessible address space");
+				throw IndexError(U"Error: Path points outside your accessible address space", IndexError::GENERIC_ERROR);
 				break;
 			case EIO:
-				m_main->Error(U"Error: An I/O error occurred.");
+				throw IndexError(U"Error: An I/O error occurred.", IndexError::GENERIC_ERROR);
 				break;
 			case ELOOP:
-				m_main->Error(U"Error: Too many symbolic links were encountered in resolving path.");
+				throw IndexError(U"Error: Too many symbolic links were encountered in resolving path.", IndexError::GENERIC_ERROR);
 				break;
 			case ENAMETOOLONG:
-				m_main->Error(U"Error: Path is too long.");
+				throw IndexError(U"Error: Path is too long.", IndexError::GENERIC_ERROR);
 				break;
 			case ENOENT:
-				m_main->Error(U"Error: The directory specified in path does not exist.");
+				throw IndexError(U"Error: The directory specified in path does not exist.", IndexError::GENERIC_ERROR);
 				break;
 			case ENOMEM:
-				m_main->Error(U"Error: Insufficient kernel memory was available.");
+				throw IndexError(U"Error: Insufficient kernel memory was available.", IndexError::GENERIC_ERROR);
 				break;
 			case ENOTDIR:
-				m_main->Error(U"Error: A component of path is not a directory.");
+				throw IndexError(U"Error: A component of path is not a directory.", IndexError::GENERIC_ERROR);
 				break;
 			case EMFILE:
-				m_main->Error(U"Error: The per-process limit on the number of open file de‐ scriptors has been reached.");
+				throw IndexError(U"Error: The per-process limit on the number of open file de‐scriptors has been reached.", IndexError::GENERIC_ERROR);
 				break;
 			case ENFILE:
-				m_main->Error(U"Error: The  system-wide  limit  on the total number of open files has been reached.");
+				throw IndexError(U"Error: The  system-wide  limit  on the total number of open files has been reached.", IndexError::GENERIC_ERROR);
 				break;
 			default:
-				m_main->Error(U"Error: Cannot access directory");
+				throw IndexError(U"Error: Cannot access directory", IndexError::GENERIC_ERROR);
 				break;
 		}
 	}
