@@ -24,6 +24,7 @@
 #include "UI/MarksExplorer.hpp"
 #include "UI/CacheExplorer.hpp"
 #include "UI/PositionExplorer.hpp"
+#include "UI/JobManager.hpp"
 
 #define LOG(__msg)                                  \
 {                                                   \
@@ -53,8 +54,10 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 	SetBackground(Settings::Style::main_window_background, false, false);
 
 	// * General input
-	AddKeyboardInput(Settings::Keyboard::quit, []
+	AddKeyboardInput(Settings::Keyboard::quit, [this]
 	{
+		if (m_prompt->IsActive())
+			return;
 		//TODO: Prompt
 		Termbox::GetTermbox().GetContext().stop = true;
 	});
@@ -62,6 +65,8 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 	// * Tabs
 	AddKeyboardInput(Settings::Keys::Go::tab_new, [this]
 	{
+		if (m_prompt->IsActive())
+			return;
 		Tab tab;
 		gTabs.push_back(std::move(tab));
 		MainWindow* main = new MainWindow(m_dir->GetDir()->GetPath(), gTabs.size()-1);
@@ -72,6 +77,8 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 
 	AddKeyboardInput(Settings::Keys::Go::tab_next, [this]
 	{
+		if (m_prompt->IsActive())
+			return;
 		if (gTabs.size() == 1)
 			return;
 
@@ -86,6 +93,9 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 
 	AddKeyboardInput(Settings::Keys::Go::tab_prev, [this]
 	{
+		if (m_prompt->IsActive())
+			return;
+		//FIXME: g T at tab 0
 		if (gTabs.size() == 1)
 			return;
 
@@ -100,6 +110,8 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 
 	AddKeyboardInput(Settings::Keys::Go::tab_close, [this]()
 	{
+		if (m_prompt->IsActive())
+			return;
 		if (gTabs.size() == 1)
 			return;
 
@@ -182,6 +194,8 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 	m_marksExplorerId = AddWidget(m_marksExplorer);
 	AddKeyboardInput(Settings::Keys::Marks::marks, [this]
 	{
+		if (m_prompt->IsActive())
+			return;
 		SetMode(m_currentMode == CurrentMode::MARKS ? CurrentMode::NORMAL : CurrentMode::MARKS);
 	});
 
@@ -192,6 +206,8 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 	m_cacheExplorerId = AddWidget(m_cacheExplorer);
 	AddKeyboardInput(Settings::Keys::Cache::cache, [this]
 	{
+		if (m_prompt->IsActive())
+			return;
 		SetMode(m_currentMode == CurrentMode::CACHE_EXPLORER ? CurrentMode::NORMAL : CurrentMode::CACHE_EXPLORER);
 	});
 
@@ -203,9 +219,22 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 
 	AddKeyboardInput(Settings::Keys::Position::position, [this]
 	{
+		if (m_prompt->IsActive())
+			return;
 		SetMode(CurrentMode::POSITION_EXPLORER);
 	});
-	// }}}
+
+	// * Job Manager
+	m_jobManager = new JobManager(this);
+	m_jobManager->SetVisible(false);
+	m_jobManager->SetActive(false);
+	m_jobManagerId = AddWidget(m_jobManager);
+	AddKeyboardInput(Settings::Keys::JobManager::manager, [this]
+	{
+		if (m_prompt->IsActive())
+			return;
+		SetMode(m_currentMode == CurrentMode::JOB_MANAGER ? CurrentMode::NORMAL : CurrentMode::JOB_MANAGER);
+	});
 
 	// TODO: Do error handling before the ctor is called
 	// if executing index -> exit (like ranger)
@@ -677,6 +706,8 @@ void MainWindow::SetMode(CurrentMode mode)
 		return;
 
 	SetEnabledInternalWidgets(false);
+	m_jobManager->SetVisible(false);
+	m_jobManager->SetActive(false);
 	m_marksExplorer->SetVisible(false);
 	m_marksExplorer->SetActive(false);
 	m_cacheExplorer->SetVisible(false);
@@ -690,6 +721,9 @@ void MainWindow::SetMode(CurrentMode mode)
 		case CurrentMode::NORMAL:
 			SetEnabledInternalWidgets(true);
 			break;
+		case CurrentMode::JOB_MANAGER:
+			m_jobManager->SetVisible(true);
+			m_jobManager->SetActive(true);
 		case CurrentMode::MARKS:
 			m_marksExplorer->SetVisible(true);
 			m_marksExplorer->SetActive(true);

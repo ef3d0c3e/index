@@ -13,7 +13,7 @@ class Prompt;
 class MarksExplorer;
 class CacheExplorer;
 class PositionExplorer;
-
+class JobManager;
 
 class GoMenu;
 class SortMenu;
@@ -27,6 +27,7 @@ class MainWindow : public Window
 	friend class ShowMenu;
 	friend class ChangeMenu;
 
+	friend class JobManager;
 	friend class MarksExplorer;
 	friend class CacheExplorer;
 	friend class PositionExplorer;
@@ -35,8 +36,9 @@ public:
 	MAKE_CENUM_Q(CurrentMode, std::uint8_t,
 		NORMAL, 0, // Default mode (directory list)
 		MARKS, 1, // Marks mode
-		CACHE_EXPLORER, 2, // Cache explorer mode
-		POSITION_EXPLORER, 3, // Position cache explorer mode
+		JOB_MANAGER, 2, // Manage jobs
+		CACHE_EXPLORER, 3, // Cache explorer mode
+		POSITION_EXPLORER, 4, // Position cache explorer mode
 	);
 
 	struct MainSettings
@@ -83,6 +85,8 @@ private:
 	std::size_t m_cacheExplorerId;
 	PositionExplorer* m_positionExplorer;
 	std::size_t m_positionExplorerId;
+	JobManager* m_jobManager;
+	std::size_t m_jobManagerId;
 
 	CurrentMode m_currentMode;
 

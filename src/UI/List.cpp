@@ -403,8 +403,9 @@ List::List(MainWindow* main, const std::string& path, bool input):
 
 			const auto pos = FindByName(name);
 			if (pos == static_cast<std::size_t>(-1)) [[unlikely]]
-				return;
-			ActionSetPosition(pos);
+				ActionSetPosition(0);
+			else
+				ActionSetPosition(pos);
 		}, Settings::Style::Filter::filter_prompt_prefix, Settings::Style::Filter::filter_prompt_bg, Settings::Style::Filter::filter_prompt_max_length, m_filter.Match, m_filter.Match.size());
 	});
 	// }}}

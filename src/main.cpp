@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
 		if (argc >= 2)
 			path = (argv[argc-1]);
 
-		Termbox tb(Color::COLORS_TRUECOLOR, COLOR_DEFAULT);
+		Termbox tb(Color::COLORS_TRUECOLOR, COLOR_DEFAULT, []{ return false; });
 		Tab tab;
 		gTabs.push_back(std::move(tab));
 		MainWindow* win = new MainWindow(path, gTabs.size()-1);

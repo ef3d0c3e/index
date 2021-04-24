@@ -138,6 +138,25 @@ namespace Settings
 			constexpr StringView date_format = U"({:%H:%M:%S})";
 		}
 
+		namespace JobManager
+		{
+			constexpr Widgets::ListSelectSettings settings{
+				.ScrollTriggerUp = 20,
+				.ScrollTriggerDown = 20,
+				.LeftMargin = 1,
+				.NumberSpacing = 1,
+				.RightMargin = 1,
+				.NumberBase = 10,
+				.DrawNumbers = true,
+				.RelativeNumbers = true,
+				.NumberRightAlign = true,
+				.TrailingChar = U'~',
+				.Cycling = true,
+			};
+
+			constexpr std::size_t max_finished = 1<<8; ///< Maximum number of finished jobsn kept in the list
+		}
+
 		// * Posix
 		constexpr Char unknown_hostname[] = U"???";
 		constexpr Char unknown_username[] = U"???";
@@ -238,10 +257,11 @@ namespace Settings
 
 			constexpr TBStyle error{0xF05040, background.s.bg, TextStyle::Bold};
 
-			const static std::array<TBString, 4> modes = {
+			const static std::array<TBString, 5> modes = {
 				// Regular modes
 				TBString{U" LIST ", {background.s.bg, 0xF07040, TextStyle::Bold}},
 				TBString{U" MARKS ", {background.s.bg, 0xF07040, TextStyle::Bold}},
+				TBString{U" JOBS ", {background.s.bg, 0xF07040, TextStyle::Bold}},
 				// Debug modes
 				TBString{U" CACHE ", {background.s.bg, 0xD080D0, TextStyle::Bold}},
 				TBString{U" POSITIONS ", {background.s.bg, 0xD080D0, TextStyle::Bold}},
@@ -359,18 +379,38 @@ namespace Settings
 			constexpr TBStyle selected{0xF04090, background.s.bg, TextStyle::Bold}; // Background will be ignored
 			constexpr TBStyle last_accessed{0x404090, background.s.bg, TextStyle::Bold}; // Background will be ignored
 		}
+
+		namespace JobManager
+		{
+			constexpr TBChar background{U' ', 0xFFFFFF, COLOR_DEFAULT};
+			constexpr TBStyle job{0x40D0F0, background.s.bg, TextStyle::Bold};
+			constexpr TBStyle job_hovered{background.s.bg, 0x40D0F0, TextStyle::Bold};
+			const static std::array<TBString, 5> status = Util::make_array(
+				TBString{U"Queued",   {0x0CF0F0, background.s.bg, TextStyle::Italic}},
+				TBString{U"Running",  {0x0CF0F0, background.s.bg, TextStyle::Italic}},
+				TBString{U"Paused",   {0x0CF0F0, background.s.bg, TextStyle::Italic}},
+				TBString{U"Finished", {0x0CF0F0, background.s.bg, TextStyle::Italic}},
+				TBString{U"Failed",   {0x0CF0F0, background.s.bg, TextStyle::Italic}}
+			);
+
+			constexpr TBStyle numbers{0xF0C000, background.s.bg, TextStyle::None}; // Background will be ignored
+			constexpr TBStyle info{0xF04090, background.s.bg, TextStyle::Bold}; // Background will be ignored
+			constexpr TBStyle started{0x404090, background.s.bg, TextStyle::Bold}; // Background will be ignored
+			constexpr TBStyle ended{0x404090, background.s.bg, TextStyle::Bold}; // Background will be ignored
+			constexpr TBStyle progress{0x40F090, background.s.bg, TextStyle::Bold}; // Background will be ignored
+		}
 	}
 
 	namespace Keys
 	{
 		namespace List
 		{
-			constexpr Char up[] = U"UP";
+			constexpr auto up = Util::make_array(U"UP", U"k");
 			constexpr Char up_page[] = U"PGUP";
-			constexpr Char down[] = U"DOWN";
+			constexpr auto down = Util::make_array(U"DOWN", U"j");
 			constexpr Char down_page[] = U"PGDN";
-			constexpr auto left = Util::make_array(U"LEFT", U"BACKSPACE");
-			constexpr auto right = Util::make_array(U"RIGHT", U"ENTER");
+			constexpr auto left = Util::make_array(U"LEFT", U"BACKSPACE", U"h");
+			constexpr auto right = Util::make_array(U"RIGHT", U"ENTER", U"l");
 		}
 
 		namespace Prompt
@@ -389,6 +429,18 @@ namespace Settings
 			constexpr Char end[] = U"C-e";
 		}
 
+		namespace Cache
+		{
+			constexpr Char cache[] = U"d c";
+			constexpr Char exit[] = U"ESC";
+		}
+
+		namespace Position
+		{
+			constexpr Char position[] = U"d p";
+			constexpr Char exit[] = U"ESC";
+		}
+
 		namespace Go
 		{
 			constexpr Char menu[] = U"g";
@@ -401,33 +453,6 @@ namespace Settings
 			constexpr Char tab_prev[] = U"g S-t";
 			constexpr Char tab_new[] = U"g n";
 			constexpr Char tab_close[] = U"g c";
-		}
-
-		namespace Marks
-		{
-			constexpr Char menu[] = U"m";
-			constexpr Char exit[] = U"ESC";
-			constexpr Char marks[] = U"m m";
-			constexpr Char select[] = U"SPC";
-			constexpr Char select_toggle_all[] = U"v";
-			constexpr Char unselect_all[] = U"m v";
-			constexpr Char tag[] = U"t";
-			constexpr Char fav[] = U"m f";
-		}
-
-		namespace Show
-		{
-			constexpr Char menu[] = U"z";
-			constexpr Char hidden[] = U"z h";
-			constexpr Char parent[] = U"z p";
-		}
-
-		namespace Change
-		{
-			constexpr Char menu[] = U"c";
-			constexpr Char directory[] = U"c d";
-			constexpr Char name[] = U"c w";
-			constexpr Char name_empty[] = U"c S-W";
 		}
 
 		namespace Sort
@@ -451,16 +476,37 @@ namespace Settings
 			constexpr Char shell_file[] = U"@"; ///< Run shell but adds a file component
 		}
 
-		namespace Cache
+		namespace Marks
 		{
-			constexpr Char cache[] = U"d c";
+			constexpr Char menu[] = U"m";
+			constexpr Char exit[] = U"ESC";
+			constexpr Char marks[] = U"m m";
+			constexpr Char select[] = U"SPC";
+			constexpr Char select_toggle_all[] = U"v";
+			constexpr Char unselect_all[] = U"m v";
+			constexpr Char tag[] = U"t";
+			constexpr Char fav[] = U"m f";
+		}
+
+		namespace JobManager
+		{
+			constexpr Char manager[] = U"j m";
 			constexpr Char exit[] = U"ESC";
 		}
 
-		namespace Position
+		namespace Show
 		{
-			constexpr Char position[] = U"d p";
-			constexpr Char exit[] = U"ESC";
+			constexpr Char menu[] = U"z";
+			constexpr Char hidden[] = U"z h";
+			constexpr Char parent[] = U"z p";
+		}
+
+		namespace Change
+		{
+			constexpr Char menu[] = U"c";
+			constexpr Char directory[] = U"c d";
+			constexpr Char name[] = U"c w";
+			constexpr Char name_empty[] = U"c S-W";
 		}
 
 		namespace Search
