@@ -19,7 +19,7 @@ ShellMenu::ShellMenu(MainWindow* main):
 		{Settings::Keys::Shell::shell,      Settings::Style::Menu::shell_menu},
 		{U"Run shell",                      Settings::Style::Menu::shell_menu},
 		{Settings::Keys::Shell::shell_file, Settings::Style::Menu::shell_menu},
-		{U"Access Time",                    Settings::Style::Menu::shell_menu},
+		{U"Open shell with filename",       Settings::Style::Menu::shell_menu},
 	});
 
 	AddKeyboardInput(Settings::Keys::Shell::menu, [this]

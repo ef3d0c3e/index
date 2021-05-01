@@ -1,6 +1,7 @@
 #include "Statusline.hpp"
 #include "Settings.hpp"
 #include "UI/List.hpp"
+#include "Actions/Jobs.hpp"
 #include <fmt/chrono.h>
 #include <unistd.h>
 #include <pwd.h>
@@ -201,7 +202,58 @@ void Statusline::Draw()
 			return len;
 		}();
 
+		//TODO: better trailing
 		w2 -= Draw::TextLine(Settings::Style::Statusline::modes[m_main->GetMode()], Vec2i(w2-modesLength[m_main->GetMode()], y), modesLength[m_main->GetMode()], {Settings::Layout::trailing_character, Settings::Style::Statusline::link_invalid}).first;
+		if (x >= w2)
+			return;
+	}
+
+	// Spacing
+	{
+		Draw::Char(m_bg, Vec2i(w2-bgWidth, y));
+		w2 -= bgWidth;
+		if (x >= w2)
+			return;
+	}
+
+	// Clipboard mode
+	if constexpr (Settings::Layout::Statusline::display_clipboard_mode)
+	{
+		const static std::array<int, Settings::Style::Statusline::clipboard_modes.size()> modesLength = [] // Precomputed table
+		{
+			std::array<int, Settings::Style::Statusline::clipboard_modes.size()> len;
+			[&]<std::size_t... i>(std::index_sequence<i...>)
+			{
+				((len[i] = Settings::Style::Statusline::clipboard_modes[i].SizeWide()), ...);
+			}(std::make_index_sequence<Settings::Style::Statusline::clipboard_modes.size()>{});
+
+			return len;
+		}();
+
+		//TODO: better trailing
+		w2 -= Draw::TextLine(Settings::Style::Statusline::clipboard_modes[gClipboardMode], Vec2i(w2-modesLength[gClipboardMode], y), modesLength[gClipboardMode], {Settings::Layout::trailing_character, Settings::Style::Statusline::link_invalid}).first;
+		if (x >= w2)
+			return;
+	}
+
+	// Spacing
+{
+		Draw::Char(m_bg, Vec2i(w2-bgWidth, y));
+		w2 -= bgWidth;
+		if (x >= w2)
+			return;
+	}
+
+	// Clipboard number
+	if constexpr (Settings::Layout::Statusline::display_clipboard_mode)
+	{
+		const auto len = Util::GetDigitsNum<10>(Termbox::GetContext().repeat);
+		w2 -= len;
+		//TODO: should read from the gclipboard
+		Draw::TextLine(Util::ToString(m_main->GetList()->GetCutOrYank()), Settings::Style::Statusline::clipboard_number, Vec2i(w2, y), len,
+				{Settings::Layout::trailing_character, Settings::Style::Statusline::clipboard_number}, 0);
+		if (x >= w2)
+			return;
 	}
 	
 	// Fill

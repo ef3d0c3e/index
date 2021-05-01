@@ -1,5 +1,8 @@
 #include "Jobs.hpp"
 
+std::deque<std::unique_ptr<Job>> gJobList;
+std::deque<String> gClipboard;
+ClipboardMode gClipboardMode(ClipboardMode::CUT);
 
 Job::Job(const String& name):
 	m_name(name),

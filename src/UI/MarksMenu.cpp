@@ -43,38 +43,41 @@ MarksMenu::MarksMenu(MainWindow* main):
 	m_main->GetList()->AddKeyboardInput(Settings::Keys::Marks::select, [this]
 	{
 		if (Termbox::GetContext().hasRepeat)
-			m_main->GetList()->ActionMarkN(Termbox::GetContext().repeat, MarkType::SELECTED);
+			m_main->GetList()->ActionMarkN(Termbox::GetContext().repeat, MarkType::SELECTED, Widgets::MarkFnAction::TOGGLE);
 		else
-			m_main->GetList()->ActionMarkN(1, MarkType::SELECTED);
+			m_main->GetList()->ActionMarkN(1, MarkType::SELECTED, Widgets::MarkFnAction::TOGGLE);
+		m_main->GetList()->UpdateMarkings();
 	});
 
 	m_main->GetList()->AddKeyboardInput(Settings::Keys::Marks::select_toggle_all, [this]
 	{
 		for (std::size_t i = 0; i < m_main->GetList()->Size(); ++i)
-			m_main->GetList()->MarkFn(i, MarkType::SELECTED);
+			m_main->GetList()->MarkFn(i, MarkType::SELECTED, true);
+		m_main->GetList()->UpdateMarkings();
 	});
 
 	m_main->GetList()->AddKeyboardInput(Settings::Keys::Marks::unselect_all, [this]
 	{
 		for (std::size_t i = 0; i < m_main->GetList()->Size(); ++i)
 			if (m_main->GetList()->Get(i).first.mark & MarkType::SELECTED)
-				m_main->GetList()->MarkFn(i, MarkType::SELECTED);
+				m_main->GetList()->MarkFn(i, MarkType::SELECTED, Widgets::MarkFnAction::TOGGLE);
+		m_main->GetList()->UpdateMarkings();
 	});
 
 	m_main->GetList()->AddKeyboardInput(Settings::Keys::Marks::tag, [this]
 	{
 		if (Termbox::GetContext().hasRepeat)
-			m_main->GetList()->ActionMarkN(Termbox::GetContext().repeat, MarkType::TAGGED);
+			m_main->GetList()->ActionMarkN(Termbox::GetContext().repeat, MarkType::TAGGED, Widgets::MarkFnAction::TOGGLE);
 		else
-			m_main->GetList()->ActionMarkN(1, MarkType::TAGGED);
+			m_main->GetList()->ActionMarkN(1, MarkType::TAGGED, Widgets::MarkFnAction::TOGGLE);
 	});
 
 	m_main->GetList()->AddKeyboardInput(Settings::Keys::Marks::fav, [this]
 	{
 		if (Termbox::GetContext().hasRepeat)
-			m_main->GetList()->ActionMarkN(Termbox::GetContext().repeat, MarkType::FAV);
+			m_main->GetList()->ActionMarkN(Termbox::GetContext().repeat, MarkType::FAV, Widgets::MarkFnAction::TOGGLE);
 		else
-			m_main->GetList()->ActionMarkN(1, MarkType::FAV);
+			m_main->GetList()->ActionMarkN(1, MarkType::FAV, Widgets::MarkFnAction::TOGGLE);
 	});
 
 	// * Event

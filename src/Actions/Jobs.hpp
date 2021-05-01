@@ -92,6 +92,12 @@ public:
 	virtual void Abort() = 0;
 };
 
-static std::deque<std::unique_ptr<Job>> gJobList;
+extern std::deque<std::unique_ptr<Job>> gJobList; ///< List of jobs
+MAKE_CENUM_Q(ClipboardMode, std::uint8_t,
+	CUT, 0,
+	YANK, 1,
+);
+extern std::deque<String> gClipboard; ///< List of files in the clipboard
+extern ClipboardMode gClipboardMode; ///< Current clipboard mode
 
 #endif // INDEX_ACTIONS_JOBS_HPP

@@ -80,6 +80,7 @@ namespace Settings
 			constexpr Char link_invalid_arrow[] = U"➜ ";
 			constexpr Char link_invalid_text[] = U"Could not resolve link";
 			constexpr bool display_mode = true; ///< Displays the current mode in the status line
+			constexpr bool display_clipboard_mode = true; ///< Displays the current clipboard mode & number in the status line
 		}
 
 		namespace Marks
@@ -138,6 +139,23 @@ namespace Settings
 			constexpr StringView date_format = U"({:%H:%M:%S})";
 		}
 
+		namespace Clipboard
+		{
+			constexpr Widgets::ListSelectSettings settings{
+				.ScrollTriggerUp = 20,
+				.ScrollTriggerDown = 20,
+				.LeftMargin = 1,
+				.NumberSpacing = 1,
+				.RightMargin = 1,
+				.NumberBase = 10,
+				.DrawNumbers = true,
+				.RelativeNumbers = true,
+				.NumberRightAlign = true,
+				.TrailingChar = U'~',
+				.Cycling = true,
+			};
+		}
+
 		namespace JobManager
 		{
 			constexpr Widgets::ListSelectSettings settings{
@@ -154,7 +172,7 @@ namespace Settings
 				.Cycling = true,
 			};
 
-			constexpr std::size_t max_finished = 1<<8; ///< Maximum number of finished jobsn kept in the list
+			constexpr std::size_t max_finished = 1<<8; ///< Maximum number of finished jobs kept in the list
 		}
 
 		// * Posix
@@ -187,8 +205,11 @@ namespace Settings
 			static const std::array<TBString, MarkType::size-1> mark_prefix = Util::make_array // Background will be ignored
 			(
 				TBString{U"[s]", {0x707070, main_window_background.s.bg, TextStyle::Bold}}, // SELECTED
-				TBString{U"*", {0xC04040, main_window_background.s.bg, TextStyle::Bold}}, // TAGGED
-				TBString{U"*", {0xF0D040, main_window_background.s.bg, TextStyle::Bold}} // FAV
+				TBString{U"*", {0xC04040, main_window_background.s.bg, TextStyle::Bold}},   // TAGGED
+				TBString{U"*", {0xF0D040, main_window_background.s.bg, TextStyle::Bold}},   // FAV
+
+				TBString{U"☡ ", {0xF080F0, main_window_background.s.bg, TextStyle::Bold}},  // CLIP_CUT
+				TBString{U"☡ ", {0x40F0B0, main_window_background.s.bg, TextStyle::Bold}}   // CLIP_YANK
 			);
 
 			// Open prompt
@@ -257,14 +278,23 @@ namespace Settings
 
 			constexpr TBStyle error{0xF05040, background.s.bg, TextStyle::Bold};
 
-			const static std::array<TBString, 5> modes = {
+			const static std::array<TBString, 6> modes =
+			{
 				// Regular modes
-				TBString{U" LIST ", {background.s.bg, 0xF07040, TextStyle::Bold}},
-				TBString{U" MARKS ", {background.s.bg, 0xF07040, TextStyle::Bold}},
-				TBString{U" JOBS ", {background.s.bg, 0xF07040, TextStyle::Bold}},
+				TBString{U" LIST ",      {background.s.bg, 0xF07040, TextStyle::Bold}},
+				TBString{U" MARKS ",     {background.s.bg, 0xF07040, TextStyle::Bold}},
+				TBString{U" CLIPBOARD ", {background.s.bg, 0xF07040, TextStyle::Bold}},
+				TBString{U" JOBS ",      {background.s.bg, 0xF07040, TextStyle::Bold}},
 				// Debug modes
-				TBString{U" CACHE ", {background.s.bg, 0xD080D0, TextStyle::Bold}},
+				TBString{U" CACHE ",     {background.s.bg, 0xD080D0, TextStyle::Bold}},
 				TBString{U" POSITIONS ", {background.s.bg, 0xD080D0, TextStyle::Bold}},
+			};
+
+			constexpr TBStyle clipboard_number{0xCFFFFF, background.s.bg, TextStyle::None}; ///< Number of cut/yanked in current folder
+			const static std::array<TBString, 2> clipboard_modes =
+			{
+				TBString{U"cut",  {0xCFFFFF, background.s.bg, TextStyle::None}},
+				TBString{U"yank", {0xCFFFFF, background.s.bg, TextStyle::None}},
 			};
 		}
 
@@ -293,21 +323,34 @@ namespace Settings
 		{
 			constexpr TBStyle background{0xFFFFFF, 0x202020, TextStyle::None};
 
+			// Go
 			constexpr TBStyle go_menu_categories{0xFFFFFF, 0x202020, TextStyle::Bold};
 			constexpr TBStyle go_menu{0xCFCFCF, COLOR_DEFAULT, TextStyle::None};
 
+			// Marks
 			constexpr TBStyle marks_menu_categories{0xFFFFFF, 0x202020, TextStyle::Bold};
 			constexpr TBStyle marks_menu{0xCFCFCF, COLOR_DEFAULT, TextStyle::None};
 
+			// Cut
+			constexpr TBStyle cut_menu_categories{0xFFFFFF, 0x202020, TextStyle::Bold};
+			constexpr TBStyle cut_menu{0xCFCFCF, COLOR_DEFAULT, TextStyle::None};
+
+			// Yank
+			constexpr TBStyle yank_menu_categories{0xFFFFFF, 0x202020, TextStyle::Bold};
+			constexpr TBStyle yank_menu{0xCFCFCF, COLOR_DEFAULT, TextStyle::None};
+
+			// Show
 			constexpr TBStyle show_menu_categories{0xFFFFFF, 0x202020, TextStyle::Bold};
 			constexpr TBStyle show_menu{0xCFCFCF, COLOR_DEFAULT, TextStyle::None};
 			const TBString show_menu_none{U"", {0xCFCFCF, COLOR_DEFAULT, TextStyle::None}};
 			const TBString show_menu_true{U"true", {0x5777FF, COLOR_DEFAULT, TextStyle::Bold}};
 			const TBString show_menu_false{U"false", {0xFF5777, COLOR_DEFAULT, TextStyle::Bold}};
 
+			// Change
 			constexpr TBStyle change_menu_categories{0xFFFFFF, 0x202020, TextStyle::Bold};
 			constexpr TBStyle change_menu{0xCFCFCF, COLOR_DEFAULT, TextStyle::None};
 
+			// Sort
 			constexpr TBStyle sort_menu_categories{0xFFFFFF, 0x202020, TextStyle::Bold};
 			constexpr TBStyle sort_menu{0xCFCFCF, COLOR_DEFAULT, TextStyle::None};
 			const TBString sort_menu_none{U"", {0xCFCFCF, COLOR_DEFAULT, TextStyle::None}};
@@ -315,6 +358,7 @@ namespace Settings
 			const TBString sort_menu_false{U"false", {0xFF5777, COLOR_DEFAULT, TextStyle::Bold}};
 			const TBString sort_menu_selected{U"X", {0x40F090, COLOR_DEFAULT, TextStyle::Bold}};
 
+			// Shell
 			constexpr TBStyle shell_menu_categories{0xFFFFFF, 0x202020, TextStyle::Bold};
 			constexpr TBStyle shell_menu{0xCFCFCF, COLOR_DEFAULT, TextStyle::None};
 		}
@@ -329,15 +373,30 @@ namespace Settings
 			(
 				TBString{U"s", {0x707070, main_window_background.s.bg, TextStyle::Bold}}, // SELECTED
 				TBString{U"t", {0xC04040, main_window_background.s.bg, TextStyle::Bold}}, // TAGGED
-				TBString{U"f", {0xF0D040, main_window_background.s.bg, TextStyle::Bold}} // FAV
+				TBString{U"f", {0xF0D040, main_window_background.s.bg, TextStyle::Bold}}, // FAV
+
+				TBString{U"c", {0xF080F0, main_window_background.s.bg, TextStyle::Bold}}, // CLIP_CUT
+				TBString{U"y", {0x40F0B0, main_window_background.s.bg, TextStyle::Bold}}  // CLIP_YANK
 			);
 
 			static const std::array<TBStyle, MarkType::size-1> mark_numbers = Util::make_array // Background will be ignored
 			(
-				TBStyle{0x707070, main_window_background.s.bg, TextStyle::Underline}, // SELECTED
-				TBStyle{0xC04040, main_window_background.s.bg, TextStyle::Underline}, // TAGGED
-				TBStyle{0xF0D040, main_window_background.s.bg, TextStyle::Underline} // FAV
+				TBStyle{0x707070, main_window_background.s.bg, TextStyle::Bold}, // SELECTED
+				TBStyle{0xC04040, main_window_background.s.bg, TextStyle::Bold}, // TAGGED
+				TBStyle{0xF0D040, main_window_background.s.bg, TextStyle::Bold}, // FAV
+
+				TBStyle{0xF080F0, main_window_background.s.bg, TextStyle::Bold},  // CLIP_CUT
+				TBStyle{0x40B0F0, main_window_background.s.bg, TextStyle::Bold}   // CLIP_YANK
 			);
+		}
+
+		namespace Clipboard
+		{
+			constexpr TBChar background{U' ', 0xFFFFFF, COLOR_DEFAULT};
+			constexpr TBStyle path{0x40D090, background.s.bg, TextStyle::Bold};
+			constexpr TBStyle path_hovered{background.s.bg, 0x40D090, TextStyle::Bold};
+
+			constexpr TBStyle numbers{0xF0C000, background.s.bg, TextStyle::None}; // Background will be ignored
 		}
 
 		namespace Change
@@ -431,13 +490,13 @@ namespace Settings
 
 		namespace Cache
 		{
-			constexpr Char cache[] = U"d c";
+			constexpr Char cache[] = U"S-D c";
 			constexpr Char exit[] = U"ESC";
 		}
 
 		namespace Position
 		{
-			constexpr Char position[] = U"d p";
+			constexpr Char position[] = U"S-D p";
 			constexpr Char exit[] = U"ESC";
 		}
 
@@ -486,6 +545,38 @@ namespace Settings
 			constexpr Char unselect_all[] = U"m v";
 			constexpr Char tag[] = U"t";
 			constexpr Char fav[] = U"m f";
+
+			// Note: CUT and YANK bindings are in Settings::Keys::Cut and Settings::Keys::Yank
+		}
+
+		namespace Cut
+		{
+			constexpr Char menu[] = U"d";
+			// Note: Calling any of the cut or yank keybinding will
+			// result in changing the clipboard'mode to respectivly
+			// cut or yank mode. (And thus reset the clipboard)
+			constexpr Char cut_set[] = U"d d"; ///< Set the clipboard to the list of currently selected files (in current folder)
+			constexpr Char cut_add[] = U"d a"; ///< Add selected files (in current folder) to the clipboard
+			constexpr Char cut_remove[] = U"d r"; ///< Add selected files (in current folder) from the clipboard
+			constexpr Char cut_toggle[] = U"d t"; ///< Toggle selected files (in current folder) in the clipboard
+		}
+
+		namespace Yank
+		{
+			constexpr Char menu[] = U"y";
+			// Note: Calling any of the cut or yank keybinding will
+			// result in changing the clipboard'mode to respectivly
+			// cut or yank mode. (And thus reset the clipboard)
+			constexpr Char yank_set[] = U"y y"; ///< Set the clipboard to the list of currently selected files (in current folder)
+			constexpr Char yank_add[] = U"y a"; ///< Add selected files (in current folder) to the clipboard
+			constexpr Char yank_remove[] = U"y r"; ///< Add selected files (in current folder) from the clipboard
+			constexpr Char yank_toggle[] = U"y t"; ///< Toggle selected files (in current folder) in the clipboard
+		}
+
+		namespace Clipboard
+		{
+			constexpr Char list[] = U"j c";
+			constexpr Char exit[] = U"ESC";
 		}
 
 		namespace JobManager

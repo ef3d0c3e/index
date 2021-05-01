@@ -29,6 +29,8 @@ private:
 	DirectoryFilter m_filter;
 
 	std::vector<std::pair<File*, FileMatch>> m_files; // Files
+	std::size_t m_cutOrYank; ///< Number of cur/yanked files
+	std::size_t m_selected; ///< Number of selected files
 
 	////////////////////////////////////////////////
 	/// \brief Action of leaving the current directory
@@ -127,6 +129,12 @@ public:
 	void UpdateFromFilesystem(bool preservePos = false);
 
 	////////////////////////////////////////////////
+	/// \brief Apply to each files
+	/// \param callback The callback to apply to every files
+	////////////////////////////////////////////////
+	void Apply(std::function<void(std::size_t, File*, FileMatch)> callback);
+
+	////////////////////////////////////////////////
 	/// \brief Gets the Directory
 	/// \returns The current directory
 	/// \see Directory
@@ -148,8 +156,9 @@ public:
 	/// \brief Marks/Unmarks a file
 	/// \param i The index of the file
 	/// \param mark The type of mark
+	/// \param toggle Toggle
 	////////////////////////////////////////////////
-	void MarkFn(std::size_t i, MarkType mark);
+	void MarkFn(std::size_t i, MarkType mark, Widgets::MarkFnAction action);
 
 	////////////////////////////////////////////////
 	/// \brief Get a file from the listing
@@ -159,6 +168,24 @@ public:
 	////////////////////////////////////////////////
 	const std::pair<const File&, const FileMatch&> Get(std::size_t i) const;
 	std::pair<File&, FileMatch&> Get(std::size_t i);
+
+	////////////////////////////////////////////////
+	/// \brief Update the markings count (m_cutOrYank, m_selected)
+	/// \note Must be called when selecting files or cutting/yanking
+	////////////////////////////////////////////////
+	void UpdateMarkings();
+
+	////////////////////////////////////////////////
+	/// \brief Get the number of selected files
+	/// \returns The number of selected files
+	////////////////////////////////////////////////
+	std::size_t GetSelected() const;
+
+	////////////////////////////////////////////////
+	/// \brief Get the number of cut/yanked files
+	/// \returns The number of cut or yanked files
+	////////////////////////////////////////////////
+	std::size_t GetCutOrYank() const;
 
 	////////////////////////////////////////////////
 	/// \brief Get the first element matching the query in the display list

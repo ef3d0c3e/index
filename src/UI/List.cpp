@@ -149,13 +149,13 @@ std::pair<TBStyle, TBStyle> List::DrawFn(std::size_t i, Vec2i pos, int w, bool h
 	return {style(c.name), style(c.numbers)};
 }
 
-void List::MarkFn(std::size_t i, MarkType mark)
+void List::MarkFn(std::size_t i, MarkType mark, Widgets::MarkFnAction action)
 {
 	File& f = Get(i).first;
 
-	if (f.mark & mark)
-		f.mark &= ~(mark);
-	else
+	if (f.mark & mark && action != Widgets::MarkFnAction::SET)
+		f.mark &= ~mark;
+	else if (action != Widgets::MarkFnAction::REMOVE)
 		f.mark |= mark;
 }
 
@@ -309,7 +309,7 @@ bool List::ApplySearch()
 
 using namespace std::placeholders;
 List::List(MainWindow* main, const std::string& path, bool input):
-	ListBase(std::bind(&List::DrawFn, this, _1, _2, _3, _4, _5), std::bind(&List::MarkFn, this, _1, _2)),
+	ListBase(std::bind(&List::DrawFn, this, _1, _2, _3, _4, _5), std::bind(&List::MarkFn, this, _1, _2, _3)),
 	m_main(main),
 	m_search(U""),
 	m_mainList(input) // If input is true, then this is the main list
@@ -437,7 +437,12 @@ List::List(MainWindow* main, const std::string& path, bool input):
 
 			ActionSetPosition(pos);
 
-		}, Settings::Style::Search::search_prompt_prefix, Settings::Style::Search::search_prompt_background, Settings::Style::Search::search_prompt_max_length, U"", 0);
+		},
+		Settings::Style::Search::search_prompt_prefix,
+		Settings::Style::Search::search_prompt_background,
+		Settings::Style::Search::search_prompt_max_length,
+		m_search,
+		Util::SizeWide(m_search));
 
 	});
 
@@ -573,6 +578,9 @@ void List::UpdateFromDir(bool preservePos)
 	// Sort
 	Sort(false);
 
+	// Markings
+	UpdateMarkings();
+
 	SetEntries(Size());
 
 	if (preservePos && !m_files.empty())
@@ -657,6 +665,12 @@ void List::UpdateFromFilesystem(bool preservePos)
 	UpdateFromDir(preservePos);
 }
 
+void List::Apply(std::function<void(std::size_t, File*, FileMatch)> callback)
+{
+	for (std::size_t i = 0; i < GetEntries(); ++i)
+		callback(i, m_files[i].first, m_files[i].second);
+}
+
 Directory* List::GetDir()
 {
 	return m_dir;
@@ -680,6 +694,29 @@ const std::pair<const File&, const FileMatch&> List::Get(std::size_t i) const
 std::pair<File&, FileMatch&> List::Get(std::size_t i)
 {
 	return {*m_files[i].first, m_files[i].second};
+}
+
+void List::UpdateMarkings()
+{
+	m_selected = 0;
+	m_cutOrYank = 0;
+	for (const auto& [f, match] : m_files)
+	{
+		if (f->mark & (MarkType::SELECTED))
+			++m_selected;
+		if (f->mark & (MarkType::CLIP_CUT | MarkType::CLIP_YANK))
+			++m_cutOrYank;
+	}
+}
+
+std::size_t List::GetSelected() const
+{
+	return m_selected;
+}
+
+std::size_t List::GetCutOrYank() const
+{
+	return m_cutOrYank;
 }
 
 std::size_t List::Find(const String& name, Mode mode, std::size_t beg) const

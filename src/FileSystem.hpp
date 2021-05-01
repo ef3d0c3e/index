@@ -33,10 +33,12 @@ MAKE_CENUM_Q(Permission, std::uint16_t,
 );
 
 MAKE_CENUM_Q(MarkType, std::uint8_t,
-	NONE,     0,
-	SELECTED, 1 << 0,
-	TAGGED,   1 << 1,
-	FAV,      1 << 2,
+	NONE,      0,
+	SELECTED,  1 << 0,
+	TAGGED,    1 << 1,
+	FAV,       1 << 2,
+	CLIP_CUT,  1 << 3,
+	CLIP_YANK, 1 << 4,
 );
 
 typedef uid_t UserID;

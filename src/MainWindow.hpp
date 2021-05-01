@@ -10,35 +10,39 @@ class Statusline;
 class Menu;
 class Prompt;
 
-class MarksExplorer;
-class CacheExplorer;
-class PositionExplorer;
-class JobManager;
-
 class GoMenu;
 class SortMenu;
 class ShellMenu;
 class MarksMenu;
+class CutMenu;
+class YankMenu;
 class ShowMenu;
 class ChangeMenu;
+
+class MarksExplorer;
+class CacheExplorer;
+class PositionExplorer;
+class ClipboardExplorer;
+class JobManager;
 
 class MainWindow : public Window
 {
 	friend class ShowMenu;
 	friend class ChangeMenu;
 
-	friend class JobManager;
 	friend class MarksExplorer;
 	friend class CacheExplorer;
 	friend class PositionExplorer;
-
+	friend class ClipboardExplorer;
+	friend class JobManager;
 public:
 	MAKE_CENUM_Q(CurrentMode, std::uint8_t,
-		NORMAL, 0, // Default mode (directory list)
-		MARKS, 1, // Marks mode
-		JOB_MANAGER, 2, // Manage jobs
-		CACHE_EXPLORER, 3, // Cache explorer mode
-		POSITION_EXPLORER, 4, // Position cache explorer mode
+		NORMAL, 0,             // Default mode (directory list)
+		MARKS, 1,              // Marks mode
+		CLIPBOARD_EXPLORER, 2, // Clipboard explorer mode
+		JOB_MANAGER, 3,        // Manage jobs
+		CACHE_EXPLORER, 4,     // Cache explorer mode
+		POSITION_EXPLORER, 5,  // Position cache explorer mode
 	);
 
 	struct MainSettings
@@ -73,6 +77,10 @@ private:
 	std::size_t m_shellMenuId;
 	MarksMenu* m_marksMenu;
 	std::size_t m_marksMenuId;
+	CutMenu* m_cutMenu;
+	std::size_t m_cutMenuId;
+	YankMenu* m_yankMenu;
+	std::size_t m_yankMenuId;
 	ShowMenu* m_showMenu;
 	std::size_t m_showMenuId;
 	ChangeMenu* m_changeMenu;
@@ -85,6 +93,8 @@ private:
 	std::size_t m_cacheExplorerId;
 	PositionExplorer* m_positionExplorer;
 	std::size_t m_positionExplorerId;
+	ClipboardExplorer* m_clipboardExplorer;
+	std::size_t m_clipboardExplorerId;
 	JobManager* m_jobManager;
 	std::size_t m_jobManagerId;
 

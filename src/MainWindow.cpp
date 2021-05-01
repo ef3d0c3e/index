@@ -17,6 +17,8 @@
 #include "UI/SortMenu.hpp"
 #include "UI/ShellMenu.hpp"
 #include "UI/MarksMenu.hpp"
+#include "UI/CutMenu.hpp"
+#include "UI/YankMenu.hpp"
 #include "UI/ShowMenu.hpp"
 #include "UI/ChangeMenu.hpp"
 
@@ -24,6 +26,7 @@
 #include "UI/MarksExplorer.hpp"
 #include "UI/CacheExplorer.hpp"
 #include "UI/PositionExplorer.hpp"
+#include "UI/ClipboardExplorer.hpp"
 #include "UI/JobManager.hpp"
 
 #define LOG(__msg)                                  \
@@ -178,6 +181,12 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 	// * Marks
 	m_marksMenu = new MarksMenu(this);
 	m_marksMenuId = AddWidget(m_marksMenu);
+	// * Cut
+	m_cutMenu = new CutMenu(this);
+	m_cutMenuId = AddWidget(m_cutMenu);
+	// * Yank
+	m_yankMenu = new YankMenu(this);
+	m_yankMenuId = AddWidget(m_yankMenu);
 	// * Show
 	m_showMenu = new ShowMenu(this);
 	m_showMenuId = AddWidget(m_showMenu);
@@ -216,12 +225,23 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 	m_positionExplorer->SetVisible(false);
 	m_positionExplorer->SetActive(false);
 	m_positionExplorerId = AddWidget(m_positionExplorer);
-
 	AddKeyboardInput(Settings::Keys::Position::position, [this]
 	{
 		if (m_prompt->IsActive())
 			return;
 		SetMode(CurrentMode::POSITION_EXPLORER);
+	});
+
+	// * Clipboard Explorer
+	m_clipboardExplorer = new ClipboardExplorer(this);
+	m_clipboardExplorer->SetVisible(false);
+	m_clipboardExplorer->SetActive(false);
+	m_clipboardExplorerId = AddWidget(m_clipboardExplorer);
+	AddKeyboardInput(Settings::Keys::Clipboard::list, [this]
+	{
+		if (m_prompt->IsActive())
+			return;
+		SetMode(CurrentMode::CLIPBOARD_EXPLORER);
 	});
 
 	// * Job Manager
@@ -235,6 +255,7 @@ MainWindow::MainWindow(const std::string& path, std::size_t tabId):
 			return;
 		SetMode(m_currentMode == CurrentMode::JOB_MANAGER ? CurrentMode::NORMAL : CurrentMode::JOB_MANAGER);
 	});
+	// }}}
 
 	// TODO: Do error handling before the ctor is called
 	// if executing index -> exit (like ranger)
@@ -304,12 +325,11 @@ void MainWindow::Resize(Vec2i dim)
 	m_sortMenu->Resize(Vec2i(w, h));
 	m_shellMenu->Resize(Vec2i(w, h));
 	m_marksMenu->Resize(Vec2i(w, h));
-
-	m_showMenu->SetPosition(Vec2i(0, h-1-m_showMenu->GetHeight()));
-	m_showMenu->SetSize(Vec2i(w, m_showMenu->GetHeight()));
-
-	m_changeMenu->SetPosition(Vec2i(0, h-1-m_changeMenu->GetHeight()));
-	m_changeMenu->SetSize(Vec2i(w, m_changeMenu->GetHeight()));
+	m_cutMenu->Resize(Vec2i(w, h));
+	m_yankMenu->Resize(Vec2i(w, h));
+	m_showMenu->Resize(Vec2i(w, h));
+	m_changeMenu->Resize(Vec2i(w, h));
+	
 
 	// * Explorers
 	m_marksExplorer->SetPosition(Vec2i(0, 1));
@@ -685,13 +705,15 @@ void MainWindow::SetEnabledInternalWidgets(bool v)
 	// Lists
 	m_dir->SetVisible(v);
 	m_dir->SetActive(v);
-	m_parent->SetVisible(v); // Never active
+	m_parent->SetVisible(ShouldShowParent()); // Never active
 
 	// Menus (only need to be disabled)
 	m_goMenu->SetActive(v);
 	m_sortMenu->SetActive(v);
 	m_shellMenu->SetActive(v);
 	m_marksMenu->SetActive(v);
+	m_cutMenu->SetActive(v);
+	m_yankMenu->SetActive(v);
 	m_showMenu->SetActive(v);
 	m_changeMenu->SetActive(v);
 }
@@ -706,10 +728,12 @@ void MainWindow::SetMode(CurrentMode mode)
 		return;
 
 	SetEnabledInternalWidgets(false);
-	m_jobManager->SetVisible(false);
-	m_jobManager->SetActive(false);
 	m_marksExplorer->SetVisible(false);
 	m_marksExplorer->SetActive(false);
+	m_clipboardExplorer->SetVisible(false);
+	m_clipboardExplorer->SetActive(false);
+	m_jobManager->SetVisible(false);
+	m_jobManager->SetActive(false);
 	m_cacheExplorer->SetVisible(false);
 	m_cacheExplorer->SetActive(false);
 	m_positionExplorer->SetVisible(false);
@@ -721,13 +745,18 @@ void MainWindow::SetMode(CurrentMode mode)
 		case CurrentMode::NORMAL:
 			SetEnabledInternalWidgets(true);
 			break;
-		case CurrentMode::JOB_MANAGER:
-			m_jobManager->SetVisible(true);
-			m_jobManager->SetActive(true);
 		case CurrentMode::MARKS:
 			m_marksExplorer->SetVisible(true);
 			m_marksExplorer->SetActive(true);
 			m_marksExplorer->AddMarks(m_dir->GetDir());
+			break;
+		case CurrentMode::CLIPBOARD_EXPLORER:
+			m_clipboardExplorer->SetVisible(true);
+			m_clipboardExplorer->SetActive(true);
+			break;
+		case CurrentMode::JOB_MANAGER:
+			m_jobManager->SetVisible(true);
+			m_jobManager->SetActive(true);
 			break;
 		case CurrentMode::CACHE_EXPLORER:
 			m_cacheExplorer->SetVisible(true);
